@@ -16,12 +16,18 @@ services:
     restart: always
 
   app:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: todo-app
+    restart: always
     depends_on:
       - mysql
     ports:
       - "8080:8080"
+    volumes:
+      - ./src:/app/src
+      - ./target:/app/target
     networks:
       - todo-network
     entrypoint: >
@@ -31,6 +37,7 @@ services:
         sleep 1;
       done;
       java -jar app.jar"
+    command: mvn spring-boot:run
 
 networks:
   todo-network:

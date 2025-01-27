@@ -35,16 +35,4 @@ public class UserServiceImpl implements UserService {
 
         userRepository.save(user);
     }
-
-    @Override
-    public User getUserById(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
-    }
-
-    @Override
-    public User getUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
-    }
 }
