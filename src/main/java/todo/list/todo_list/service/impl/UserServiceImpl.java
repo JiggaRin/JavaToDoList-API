@@ -1,16 +1,19 @@
 package todo.list.todo_list.service.impl;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import todo.list.todo_list.dto.RegistrationRequest;
 import todo.list.todo_list.entity.User;
+import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.repository.UserRepository;
 import todo.list.todo_list.service.UserService;
 
 @Service
 public class UserServiceImpl implements UserService {
 
+    @Autowired
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -34,5 +37,11 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         userRepository.save(user);
+    }
+
+    @Override
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
     }
 }
