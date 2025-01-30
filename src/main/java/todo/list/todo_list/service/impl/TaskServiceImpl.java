@@ -34,6 +34,15 @@ public class TaskServiceImpl implements TaskService {
         User user = userService.getUserById(request.getUserId());
 
         Task task = new Task();
+
+        if (request.getParentId() != null) {
+            Task parentTask = taskRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent Task not found with ID: " + request.getParentId()));
+            task.setParentTask(parentTask);
+        } else {
+            task.setParentTask(null);
+        }
+
         task.setUser(user);
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
@@ -59,6 +68,14 @@ public class TaskServiceImpl implements TaskService {
 
         Task existedTask = taskOpt.orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
+        if (request.getParentId() != null) {
+            Task parentTask = taskRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent Task not found with ID: " + request.getParentId()));
+            existedTask.setParentTask(parentTask);
+        } else {
+            existedTask.setParentTask(null);
+        }
+
         existedTask.setUser(user);
         existedTask.setTitle(request.getTitle());
         existedTask.setDescription(request.getDescription());
@@ -77,8 +94,8 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskDTO> getAllTasks() {
-        return taskRepository.findAll().stream()
+    public List<TaskDTO> getAllParentTasks() {
+        return taskRepository.findParentTasks().stream()
                 .map(TaskDTO::new)
                 .collect(Collectors.toList());
     }

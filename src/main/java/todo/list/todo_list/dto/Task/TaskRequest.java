@@ -3,10 +3,27 @@ package todo.list.todo_list.dto.Task;
 import todo.list.todo_list.model.Status;
 
 public class TaskRequest {
+    private Long parentId;
+    private Long userId;
     private String title;
     private String description;
-    private Long userId;
     private Status status;
+
+    public Long getParentId() {
+        return this.parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
+    }
+
+    public Long getUserId() {
+        return this.userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
 
     public String getTitle() {
         return this.title;
@@ -22,14 +39,6 @@ public class TaskRequest {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public Long getUserId() {
-        return this.userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
     }
 
     public Status getStatus() {

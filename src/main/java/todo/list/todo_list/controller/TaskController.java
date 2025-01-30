@@ -59,8 +59,8 @@ public class TaskController {
     }
 
     @GetMapping("/")
-    public ResponseEntity<List<TaskDTO>> getAllTasks() {
-        List<TaskDTO> tasks = taskService.getAllTasks();
+    public ResponseEntity<List<TaskDTO>> getAllParentTasks() {
+        List<TaskDTO> tasks = taskService.getAllParentTasks();
 
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }

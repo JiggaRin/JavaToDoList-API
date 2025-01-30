@@ -1,6 +1,10 @@
 package todo.list.todo_list.dto.Task;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import todo.list.todo_list.entity.Task;
 import todo.list.todo_list.model.Status;
@@ -8,20 +12,31 @@ import todo.list.todo_list.model.Status;
 public class TaskDTO {
     private Long id;
     private Long userId;
+    private Long parentId;
     private String title;
     private String description;
     private Status status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-   
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private List<TaskDTO> subTasks;
+
     public TaskDTO(Task task) {
         this.id = task.getId();
         this.userId = task.getUser().getId();
+        this.parentId = (task.getParentTask() != null) ? task.getParentTask().getId() : null;
         this.title = task.getTitle();
         this.description = task.getDescription();
         this.status = task.getStatus();
         this.createdAt = task.getCreatedAt();
         this.updatedAt = task.getUpdatedAt();
+
+        if (task.getSubTasks() != null && !task.getSubTasks().isEmpty()) {
+            this.subTasks = task.getSubTasks().stream()
+                    .map(TaskDTO::new)
+                    .collect(Collectors.toList());
+        }
     }
 
     public Long getId() {
@@ -30,6 +45,14 @@ public class TaskDTO {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getParentId() {
+        return this.parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
     }
 
     public Long getUserId() {
@@ -64,6 +87,14 @@ public class TaskDTO {
         this.status = status;
     }
 
+    public List<TaskDTO> getSubTasks() {
+        return this.subTasks;
+    }
+
+    public void setSubTasks(List<TaskDTO> subTasks) {
+        this.subTasks = subTasks;
+    }
+
     public LocalDateTime getCreatedAt() {
         return this.createdAt;
     }
@@ -79,5 +110,4 @@ public class TaskDTO {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
-
 }
