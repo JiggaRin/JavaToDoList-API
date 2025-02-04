@@ -1,7 +1,9 @@
 package todo.list.todo_list.entity;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,6 +14,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
@@ -27,7 +31,7 @@ public class Task {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "parent_id") // Foreign key to reference another Task
+    @JoinColumn(name = "parent_id")
     private Task parentTask;
 
     @ManyToOne
@@ -50,8 +54,30 @@ public class Task {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @ManyToMany
+    @JoinTable(
+        name = "task_categories",
+        joinColumns = @JoinColumn(name = "task_id"),
+        inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<Category> categories = new HashSet<>();
+
     @OneToMany(mappedBy = "parentTask", fetch = FetchType.LAZY)
     private List<Task> subTasks;
+
+    public Task() {}
+
+    public Task(Long id, Task parentTask, User user, String title, String description, Status status, LocalDateTime createdAt, LocalDateTime updatedAt, List<Task> subTasks) {
+        this.id = id;
+        this.parentTask = parentTask;
+        this.user = user;
+        this.title = title;
+        this.description = description;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.subTasks = subTasks;
+    }
 
     public Long getId() {
         return this.id;
@@ -123,6 +149,14 @@ public class Task {
 
     public void setSubTasks(List<Task> subTasks) {
         this.subTasks = subTasks;
+    }
+
+    public Set<Category> getCategories() {
+        return categories;
+    }
+
+    public void setCategories(Set<Category> categories) {
+        this.categories = categories;
     }
 
     @PrePersist

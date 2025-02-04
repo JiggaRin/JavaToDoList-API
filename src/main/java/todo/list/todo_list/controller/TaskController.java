@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 import todo.list.todo_list.dto.Task.TaskDTO;
 import todo.list.todo_list.dto.Task.TaskRequest;
 import todo.list.todo_list.service.TaskService;
-import todo.list.todo_list.service.UserService;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -26,7 +25,7 @@ public class TaskController {
     @Autowired
     private final TaskService taskService;
 
-    public TaskController(TaskService taskService, UserService userService) {
+    public TaskController(TaskService taskService) {
         this.taskService = taskService;
     }
 

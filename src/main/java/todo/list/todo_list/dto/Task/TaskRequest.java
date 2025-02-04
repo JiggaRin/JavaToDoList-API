@@ -1,5 +1,7 @@
 package todo.list.todo_list.dto.Task;
 
+import java.util.List;
+
 import todo.list.todo_list.model.Status;
 
 public class TaskRequest {
@@ -8,6 +10,7 @@ public class TaskRequest {
     private String title;
     private String description;
     private Status status;
+    private List<String> categoryNames;
 
     public Long getParentId() {
         return this.parentId;
@@ -49,4 +52,12 @@ public class TaskRequest {
         this.status = status;
     }
 
+    public List<String> getCategoryNames() {
+        return this.categoryNames;
+    }
+
+    public void setCategoryNames(List<String> categoryNames) {
+        this.categoryNames = categoryNames;
+    }
+    
 }

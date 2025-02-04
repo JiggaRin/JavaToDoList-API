@@ -2,10 +2,12 @@ package todo.list.todo_list.dto.Task;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import todo.list.todo_list.entity.Category;
 import todo.list.todo_list.entity.Task;
 import todo.list.todo_list.model.Status;
 
@@ -20,6 +22,9 @@ public class TaskDTO {
     private LocalDateTime updatedAt;
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private Set<String> categories;
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<TaskDTO> subTasks;
 
     public TaskDTO(Task task) {
@@ -31,6 +36,7 @@ public class TaskDTO {
         this.status = task.getStatus();
         this.createdAt = task.getCreatedAt();
         this.updatedAt = task.getUpdatedAt();
+        this.categories = task.getCategories().stream().map(Category::getName).collect(Collectors.toSet());
 
         if (task.getSubTasks() != null && !task.getSubTasks().isEmpty()) {
             this.subTasks = task.getSubTasks().stream()
@@ -109,5 +115,14 @@ public class TaskDTO {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+
+    public Set<String> getCategories() {
+        return this.categories;
+    }
+
+    public void setCategories(Set<String> categories) {
+        this.categories = categories;
     }
 }

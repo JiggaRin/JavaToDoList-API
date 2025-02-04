@@ -1,7 +1,7 @@
 package todo.list.todo_list.service.impl;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,10 +9,12 @@ import org.springframework.stereotype.Service;
 
 import todo.list.todo_list.dto.Task.TaskDTO;
 import todo.list.todo_list.dto.Task.TaskRequest;
+import todo.list.todo_list.entity.Category;
 import todo.list.todo_list.entity.Task;
 import todo.list.todo_list.entity.User;
 import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.model.Status;
+import todo.list.todo_list.repository.CategoryRepository;
 import todo.list.todo_list.repository.TaskRepository;
 import todo.list.todo_list.service.TaskService;
 import todo.list.todo_list.service.UserService;
@@ -23,10 +25,12 @@ public class TaskServiceImpl implements TaskService {
     @Autowired
     private final UserService userService;
     private final TaskRepository taskRepository;
+    private final CategoryRepository categoryRepository;
 
-    public TaskServiceImpl(UserService userService, TaskRepository taskRepository) {
+    public TaskServiceImpl(UserService userService, TaskRepository taskRepository, CategoryRepository categoryRepository) {
         this.userService = userService;
         this.taskRepository = taskRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     @Override
@@ -48,25 +52,32 @@ public class TaskServiceImpl implements TaskService {
         task.setDescription(request.getDescription());
         task.setStatus(request.getStatus() != null ? request.getStatus() : Status.TODO);
 
-        Task savedTask = taskRepository.save(task);
-        return new TaskDTO(savedTask);
+        Set<Category> categories = request.getCategoryNames().stream()
+                .map(name -> {
+                    Category category = categoryRepository.findByName(name)
+                            .orElseGet(() -> categoryRepository.save(new Category(name)));
+                    return category;
+                })
+                .collect(Collectors.toSet());
+        task.setCategories(categories);
+
+        return new TaskDTO(taskRepository.save(task));
     }
 
     @Override
     public TaskDTO getTask(Long taskId) {
-        Optional<Task> taskOpt = taskRepository.findById(taskId);
-
-        Task task = taskOpt.orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
         return new TaskDTO(task);
     }
 
     @Override
     public TaskDTO updateTask(Long taskId, TaskRequest request) {
-        Optional<Task> taskOpt = taskRepository.findById(taskId);
         User user = userService.getUserById(request.getUserId());
 
-        Task existedTask = taskOpt.orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
+        Task existedTask = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
         if (request.getParentId() != null) {
             Task parentTask = taskRepository.findById(request.getParentId())
@@ -81,14 +92,23 @@ public class TaskServiceImpl implements TaskService {
         existedTask.setDescription(request.getDescription());
         existedTask.setStatus(request.getStatus());
 
+        Set<Category> categories = request.getCategoryNames().stream()
+                .map(name -> {
+                    Category category = categoryRepository.findByName(name)
+                            .orElseGet(() -> categoryRepository.save(new Category(name)));
+                    return category;
+                })
+                .collect(Collectors.toSet());
+
+        existedTask.setCategories(categories);
+
         return new TaskDTO(taskRepository.save(existedTask));
     }
 
     @Override
     public void deleteTask(Long taskId) {
-        Optional<Task> taskOpt = taskRepository.findById(taskId);
-
-        Task existindTask = taskOpt.orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
+        Task existindTask = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
         taskRepository.delete(existindTask);
     }
