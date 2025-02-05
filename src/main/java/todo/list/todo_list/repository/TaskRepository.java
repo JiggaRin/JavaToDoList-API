@@ -16,6 +16,9 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     List<Task> findByUser(User user);
 
-    @Query("SELECT CASE WHEN COUNT(t) > 0 THEN false ELSE true END FROM Task t WHERE t.title = :title AND t.user.id = :userId")
-    boolean isTitleUnique(@Param("title") String title, @Param("userId") Long userId);
+    @Query("SELECT CASE WHEN COUNT(t) > 0 THEN false ELSE true END "
+            + "FROM Task t WHERE t.title = :title AND t.user.id = :userId "
+            + "AND (t.id != :taskId OR :taskId IS NULL)")
+    boolean isTitleUnique(@Param("title") String title, @Param("userId") Long userId, @Param("taskId") Long taskId);
+
 }

@@ -38,7 +38,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskDTO createTask(TaskRequest request) {
-        if (!taskRepository.isTitleUnique(request.getTitle(), request.getUserId())) {
+        if (!taskRepository.isTitleUnique(request.getTitle(), request.getUserId(), null)) {
             throw new ResourceConflictException("Title must be unique for the user");
         }
 
@@ -77,10 +77,18 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskDTO updateTask(Long taskId, TaskRequest request) {
-        User user = userService.getUserById(request.getUserId());
-
         Task existedTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
+
+        if (!taskRepository.isTitleUnique(request.getTitle(), existedTask.getUser().getId(), taskId)) {
+            throw new ResourceConflictException("Title must be unique for the user.");
+        }
+
+        if (hasDuplicateCategories(request.getCategoryNames())) {
+            throw new DuplicateCategoryException("A task cannot have duplicate categories.");
+        }
+
+        User user = userService.getUserById(request.getUserId());
 
         if (request.getParentId() != null) {
             Task parentTask = taskRepository.findById(request.getParentId())
