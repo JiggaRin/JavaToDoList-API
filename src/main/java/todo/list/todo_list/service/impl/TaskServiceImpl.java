@@ -1,5 +1,6 @@
 package todo.list.todo_list.service.impl;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -12,6 +13,8 @@ import todo.list.todo_list.dto.Task.TaskRequest;
 import todo.list.todo_list.entity.Category;
 import todo.list.todo_list.entity.Task;
 import todo.list.todo_list.entity.User;
+import todo.list.todo_list.exception.DuplicateCategoryException;
+import todo.list.todo_list.exception.ResourceConflictException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.model.Status;
 import todo.list.todo_list.repository.CategoryRepository;
@@ -35,9 +38,20 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskDTO createTask(TaskRequest request) {
+        if (!taskRepository.isTitleUnique(request.getTitle(), request.getUserId())) {
+            throw new ResourceConflictException("Title must be unique for the user");
+        }
+
+        if (hasDuplicateCategories(request.getCategoryNames())) {
+            throw new DuplicateCategoryException("A task cannot have duplicate categories.");
+        }
         User user = userService.getUserById(request.getUserId());
 
         Task task = new Task();
+        task.setUser(user);
+        task.setTitle(request.getTitle());
+        task.setDescription(request.getDescription());
+        task.setStatus(request.getStatus() != null ? request.getStatus() : Status.TODO);
 
         if (request.getParentId() != null) {
             Task parentTask = taskRepository.findById(request.getParentId())
@@ -47,18 +61,7 @@ public class TaskServiceImpl implements TaskService {
             task.setParentTask(null);
         }
 
-        task.setUser(user);
-        task.setTitle(request.getTitle());
-        task.setDescription(request.getDescription());
-        task.setStatus(request.getStatus() != null ? request.getStatus() : Status.TODO);
-
-        Set<Category> categories = request.getCategoryNames().stream()
-                .map(name -> {
-                    Category category = categoryRepository.findByName(name)
-                            .orElseGet(() -> categoryRepository.save(new Category(name)));
-                    return category;
-                })
-                .collect(Collectors.toSet());
+        Set<Category> categories = fetchOrCreateCategories(request.getCategoryNames());
         task.setCategories(categories);
 
         return new TaskDTO(taskRepository.save(task));
@@ -128,5 +131,17 @@ public class TaskServiceImpl implements TaskService {
         return tasks.stream()
                 .map(TaskDTO::new)
                 .collect(Collectors.toList());
+    }
+
+    private Set<Category> fetchOrCreateCategories(List<String> categoryNames) {
+        return categoryNames.stream()
+                .map(name -> categoryRepository.findByName(name)
+                .orElseGet(() -> categoryRepository.save(new Category(name))))
+                .collect(Collectors.toSet());
+    }
+
+    private boolean hasDuplicateCategories(List<String> categoryNames) {
+        Set<String> uniqueCategories = new HashSet<>(categoryNames);
+        return uniqueCategories.size() < categoryNames.size();
     }
 }

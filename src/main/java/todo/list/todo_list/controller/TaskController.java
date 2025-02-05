@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
 import todo.list.todo_list.dto.Task.TaskDTO;
 import todo.list.todo_list.dto.Task.TaskRequest;
 import todo.list.todo_list.service.TaskService;
@@ -30,7 +31,7 @@ public class TaskController {
     }
 
     @PostMapping("/")
-    public ResponseEntity<TaskDTO> createTask(@RequestBody TaskRequest request) {
+    public ResponseEntity<TaskDTO> createTask(@Valid @RequestBody TaskRequest request) {
         TaskDTO createdTask = taskService.createTask(request);
 
         return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
@@ -44,7 +45,7 @@ public class TaskController {
     }
 
     @PutMapping("/{taskId}")
-    public ResponseEntity<TaskDTO> updateTask(@PathVariable Long taskId, @RequestBody TaskRequest request) {
+    public ResponseEntity<TaskDTO> updateTask(@PathVariable Long taskId, @Valid @RequestBody TaskRequest request) {
         TaskDTO task = taskService.updateTask(taskId, request);
 
         return new ResponseEntity<>(task, HttpStatus.OK);
