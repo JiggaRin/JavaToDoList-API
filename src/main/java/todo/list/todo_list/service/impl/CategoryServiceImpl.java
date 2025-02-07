@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import todo.list.todo_list.dto.Category.CategoryDTO;
 import todo.list.todo_list.dto.Category.CategoryRequest;
 import todo.list.todo_list.entity.Category;
+import todo.list.todo_list.exception.ResourceConflictException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.repository.CategoryRepository;
 import todo.list.todo_list.service.CategoryService;
@@ -32,6 +33,10 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryDTO createCategory(CategoryRequest request) {
+        if (!categoryRepository.isCategoryNameUnique(request.getName(), null)) {
+            throw new ResourceConflictException("Category name must be unique.");
+        }
+
         Category category = categoryRepository.findByName(request.getName())
                 .orElseGet(() -> categoryRepository.save(new Category(request.getName())));
 
@@ -51,6 +56,10 @@ public class CategoryServiceImpl implements CategoryService {
         Category existedCategory = categoryRepository.findById(catId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + catId));
 
+        if (!categoryRepository.isCategoryNameUnique(request.getName(), existedCategory.getId())) {
+            throw new ResourceConflictException("Category name must be unique.");
+        }
+        
         existedCategory.setName(request.getName());
         categoryRepository.save(existedCategory);
 

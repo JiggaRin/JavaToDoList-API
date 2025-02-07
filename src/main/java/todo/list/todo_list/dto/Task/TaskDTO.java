@@ -18,14 +18,17 @@ public class TaskDTO {
     private String title;
     private String description;
     private Status status;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-
+    
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Set<String> categories;
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<TaskDTO> subTasks;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    
 
     public TaskDTO(Task task) {
         this.id = task.getId();
