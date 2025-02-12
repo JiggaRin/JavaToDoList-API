@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import todo.list.todo_list.dto.Auth.AuthRequest;
 import todo.list.todo_list.dto.Auth.AuthResponse;
 import todo.list.todo_list.dto.RegistrationRequest;
+import todo.list.todo_list.security.JwtUtil;
 import todo.list.todo_list.service.AuthService;
 import todo.list.todo_list.service.RefreshTokenService;
 import todo.list.todo_list.service.UserService;
@@ -22,11 +23,13 @@ public class AuthController {
 
     private final UserService userService;
     private final AuthService authService;
+    private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
 
-    public AuthController(UserService userService, AuthService authService, RefreshTokenService refreshTokenService) {
+    public AuthController(UserService userService, AuthService authService, JwtUtil jwtUtil, RefreshTokenService refreshTokenService) {
         this.userService = userService;
         this.authService = authService;
+        this.jwtUtil = jwtUtil;
         this.refreshTokenService = refreshTokenService;
     }
 
@@ -57,8 +60,11 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
-        refreshTokenService.deleteByUsername(refreshToken);
-        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+        if (refreshToken == null || !jwtUtil.validateToken(refreshToken)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Invalid refresh token"));
+        }
+        String username = jwtUtil.extractUsername(refreshToken);
+        refreshTokenService.deleteByUsername(username);
+        return ResponseEntity.status(200).body(Map.of("message", "Logged out successfully"));
     }
-
 }

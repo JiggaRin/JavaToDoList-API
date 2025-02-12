@@ -66,8 +66,8 @@ public class JwtUtil {
             return verifier.verify(token);
         } catch (JWTVerificationException e) {
             return null;
-        }
-    }    
+       }
+    }     
 
     public long getRefreshExpirationMillis() {
         return refreshExpiration * 1000;

@@ -33,7 +33,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String requestURI = request.getRequestURI();
 
-        // Skip authentication for login and refresh endpoints
         if (requestURI.contains("/api/login") || requestURI.contains("/api/refresh")) {
             filterChain.doFilter(request, response);
             return;
@@ -43,13 +42,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (token != null) {
             DecodedJWT decodedJWT = jwtUtil.verifyToken(token);
-            
+
             if (decodedJWT != null) {
                 String username = decodedJWT.getSubject();
                 UserDetails customUserDetails = customUserDetailsService.loadUserByUsername(username);
 
-                UsernamePasswordAuthenticationToken authenticationToken =
-                        new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
+                UsernamePasswordAuthenticationToken authenticationToken
+                        = new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
                 authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);

@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import jakarta.transaction.Transactional;
 import todo.list.todo_list.entity.RefreshToken;
 import todo.list.todo_list.repository.RefreshTokenRepository;
 import todo.list.todo_list.security.JwtUtil;
@@ -44,6 +45,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     }
 
     @Override
+    @Transactional
     public void deleteByUsername(String username) {
         refreshTokenRepository.deleteByUsername(username);
     }
