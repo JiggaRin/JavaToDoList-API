@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
 import todo.list.todo_list.dto.Auth.AuthRequest;
 import todo.list.todo_list.dto.Auth.AuthResponse;
-import todo.list.todo_list.dto.RegistrationRequest;
+import todo.list.todo_list.dto.Registration.RegistrationRequest;
+import todo.list.todo_list.dto.Registration.RegistrationResponse;
 import todo.list.todo_list.security.JwtUtil;
 import todo.list.todo_list.service.AuthService;
 import todo.list.todo_list.service.RefreshTokenService;
@@ -34,9 +36,9 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegistrationRequest request) {
-        userService.registerUser(request);
-        return new ResponseEntity<>(HttpStatus.OK);
+    public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegistrationRequest request) {
+        RegistrationResponse response = userService.registerUser(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PostMapping("/login")

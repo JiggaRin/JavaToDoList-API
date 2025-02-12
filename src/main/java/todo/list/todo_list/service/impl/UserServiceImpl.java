@@ -4,9 +4,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import todo.list.todo_list.dto.RegistrationRequest;
+import jakarta.validation.Valid;
+import todo.list.todo_list.dto.Registration.RegistrationRequest;
+import todo.list.todo_list.dto.Registration.RegistrationResponse;
 import todo.list.todo_list.entity.User;
 import todo.list.todo_list.exception.ResourceNotFoundException;
+import todo.list.todo_list.exception.UserAlreadyExistsException;
 import todo.list.todo_list.repository.UserRepository;
 import todo.list.todo_list.service.UserService;
 
@@ -23,12 +26,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void registerUser(RegistrationRequest request) {
+    public RegistrationResponse registerUser(@Valid RegistrationRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalStateException("Username is already taken");
+            throw new UserAlreadyExistsException("Username is already taken");
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalStateException("Email is already taken");
+            throw new UserAlreadyExistsException("Email is already taken");
         }
 
         User user = new User();
@@ -37,6 +40,8 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         userRepository.save(user);
+
+        return new RegistrationResponse("User registered successfully", user.getUsername(), user.getEmail());
     }
 
     @Override

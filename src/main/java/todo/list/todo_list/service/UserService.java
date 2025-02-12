@@ -1,9 +1,10 @@
 package todo.list.todo_list.service;
 
-import todo.list.todo_list.dto.RegistrationRequest;
+import todo.list.todo_list.dto.Registration.RegistrationRequest;
+import todo.list.todo_list.dto.Registration.RegistrationResponse;
 import todo.list.todo_list.entity.User;
 
 public interface UserService {
-    void registerUser(RegistrationRequest request);
+    RegistrationResponse registerUser(RegistrationRequest request);
     User getUserById(Long id);
 }
