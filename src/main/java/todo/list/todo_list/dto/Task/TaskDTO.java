@@ -28,8 +28,6 @@ public class TaskDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    
-
     public TaskDTO(Task task) {
         this.id = task.getId();
         this.userId = task.getUser().getId();
