@@ -2,7 +2,12 @@ package todo.list.todo_list.entity;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -20,7 +25,8 @@ import todo.list.todo_list.model.Role;
 
 @Entity
 @Table(name = "users")
-public class User {
+public class User implements UserDetails {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -35,9 +41,13 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(name="role")
-    // Temporary assign role = User
-    private Role role = Role.USER;
+    @Column(name = "role")
+    private Role role;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -56,6 +66,7 @@ public class User {
         this.id = id;
     }
 
+    @Override
     public String getUsername() {
         return this.username;
     }
@@ -72,6 +83,7 @@ public class User {
         this.email = email;
     }
 
+    @Override
     public String getPassword() {
         return this.password;
     }
@@ -133,4 +145,6 @@ public class User {
         tasks.remove(task);
         task.setUser(null);
     }
+
+    
 }

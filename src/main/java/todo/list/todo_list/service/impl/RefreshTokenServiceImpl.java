@@ -1,25 +1,31 @@
 package todo.list.todo_list.service.impl;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
 import todo.list.todo_list.entity.RefreshToken;
+import todo.list.todo_list.entity.User;
 import todo.list.todo_list.repository.RefreshTokenRepository;
 import todo.list.todo_list.security.JwtUtil;
 import todo.list.todo_list.service.RefreshTokenService;
+import todo.list.todo_list.service.UserService;
 
 @Service
 public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtUtil jwtUtil;
+    private final UserService userService;
 
-    public RefreshTokenServiceImpl(RefreshTokenRepository refreshTokenRepository, JwtUtil jwtUtil) {
+    public RefreshTokenServiceImpl(RefreshTokenRepository refreshTokenRepository, JwtUtil jwtUtil, UserService userService) {
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtUtil = jwtUtil;
+        this.userService = userService;
     }
 
     @Override
@@ -30,8 +36,12 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
             return null;
         }
 
-        String username = storedRefreshToken.get().getUsername();
-        return jwtUtil.generateAccessToken(username);
+        User user = userService.getUserByUsername(storedRefreshToken.get().getUsername());
+        List<String> roles = user.getAuthorities().stream()
+                .map(authority -> authority.getAuthority())
+                .collect(Collectors.toList());
+
+        return jwtUtil.generateAccessToken(user.getUsername(), roles);
     }
 
     @Override

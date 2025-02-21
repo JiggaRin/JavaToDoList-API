@@ -141,6 +141,15 @@ public class TaskServiceImpl implements TaskService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public boolean isOwner(Long taskId, String username) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
+        return task.getUser().getUsername().equals(username);
+    }
+
+    
+
     private Set<Category> fetchOrCreateCategories(List<String> categoryNames) {
         return categoryNames.stream()
                 .map(name -> categoryRepository.findByName(name)

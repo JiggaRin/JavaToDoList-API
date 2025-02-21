@@ -12,4 +12,5 @@ public interface TaskService {
     void deleteTask(Long taskId);
     List<TaskDTO> getAllParentTasks();
     List<TaskDTO> getTasksByUser(Long taskId);
+    boolean isOwner(Long taskId, String username);
 }
