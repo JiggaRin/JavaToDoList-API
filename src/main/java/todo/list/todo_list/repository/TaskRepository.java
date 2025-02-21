@@ -11,9 +11,8 @@ import todo.list.todo_list.entity.User;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
-    @Query("SELECT t FROM Task t WHERE t.parentTask IS NULL")
-    List<Task> findParentTasks();
-
+    @Query("SELECT t FROM Task t WHERE (:userId IS NULL OR t.user.id = :userId) AND t.parentTask IS NULL ORDER BY t.createdAt ASC")
+    List<Task> findParentTasks(@Param("userId") Long userId);
     List<Task> findByUser(User user);
 
     @Query("SELECT CASE WHEN COUNT(t) > 0 THEN false ELSE true END "

@@ -24,18 +24,16 @@ public class JwtUtil {
     @Value("${jwt.refreshExpiration}")
     private long refreshExpiration;
 
-    // Generate access token with roles included
     public String generateAccessToken(String username, List<String> roles) {
         return JWT.create()
                 .withSubject(username)
-                .withClaim("roles", roles)  // Store roles as a list
+                .withClaim("roles", roles)
                 .withIssuedAt(new Date())
                 .withExpiresAt(new Date(System.currentTimeMillis() + expiration * 1000))
                 .sign(Algorithm.HMAC256(secret));
     }
     
 
-    // Generate refresh token (does not need roles)
     public String generateRefreshToken(String username) {
         return JWT.create()
                 .withSubject(username)
@@ -44,7 +42,6 @@ public class JwtUtil {
                 .sign(Algorithm.HMAC256(secret));
     }
 
-    // Extract the username from the token
     public String extractUsername(String token) {
         try {
             return JWT.require(Algorithm.HMAC256(secret))
@@ -56,7 +53,6 @@ public class JwtUtil {
         }
     }
 
-    // Validate the token
     public boolean validateToken(String token) {
         try {
             JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secret)).build();
@@ -72,13 +68,12 @@ public class JwtUtil {
             DecodedJWT jwt = JWT.require(Algorithm.HMAC256(secret))
                     .build()
                     .verify(token);
-            return jwt.getClaim("roles").asList(String.class);  // Extract roles as a list
+            return jwt.getClaim("roles").asList(String.class);
         } catch (JWTVerificationException e) {
             return null;
         }
     }
 
-    // Verify the token and return the decoded JWT
     public DecodedJWT verifyToken(String token) {
         try {
             JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secret)).build();

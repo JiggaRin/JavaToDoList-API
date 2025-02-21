@@ -59,7 +59,7 @@ public class CategoryServiceImpl implements CategoryService {
         if (!categoryRepository.isCategoryNameUnique(request.getName(), existedCategory.getId())) {
             throw new ResourceConflictException("Category name must be unique.");
         }
-        
+
         existedCategory.setName(request.getName());
         categoryRepository.save(existedCategory);
 

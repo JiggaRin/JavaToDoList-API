@@ -6,11 +6,20 @@ import todo.list.todo_list.dto.Task.TaskDTO;
 import todo.list.todo_list.dto.Task.TaskRequest;
 
 public interface TaskService {
+
     TaskDTO createTask(TaskRequest request);
+
     TaskDTO getTask(Long taskId);
+
     TaskDTO updateTask(Long taskId, TaskRequest request);
+
     void deleteTask(Long taskId);
+
     List<TaskDTO> getAllParentTasks();
-    List<TaskDTO> getTasksByUser(Long taskId);
+
+    List<TaskDTO> getTasksByUser(Long userId);
+
+    List<TaskDTO> getUserTasks(String username);
+
     boolean isOwner(Long taskId, String username);
 }

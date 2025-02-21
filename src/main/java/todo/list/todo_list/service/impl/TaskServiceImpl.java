@@ -126,7 +126,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public List<TaskDTO> getAllParentTasks() {
-        return taskRepository.findParentTasks().stream()
+        return taskRepository.findParentTasks(null).stream()
                 .map(TaskDTO::new)
                 .collect(Collectors.toList());
     }
@@ -148,7 +148,15 @@ public class TaskServiceImpl implements TaskService {
         return task.getUser().getUsername().equals(username);
     }
 
-    
+    @Override
+    public List<TaskDTO> getUserTasks(String username) {
+        User user = userService.getUserByUsername(username);
+
+        List<Task> tasks = taskRepository.findParentTasks(user.getId());
+        return tasks.stream()
+                .map(TaskDTO::new)
+                .collect(Collectors.toList());
+    }
 
     private Set<Category> fetchOrCreateCategories(List<String> categoryNames) {
         return categoryNames.stream()
