@@ -5,17 +5,12 @@ import java.util.List;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import todo.list.todo_list.model.Status;
 import todo.list.todo_list.validation.EnumValidator;
 
 public class TaskRequest {
     private Long parentId;
-
-    @NotNull(message = "ID is required")
-    @Positive(message = "User ID value must be positive")
-    private Long userId;
 
     @NotEmpty(message = "Title cannot be empty")
     @Size(min = 1, max = 255, message = "Title must be between 1 and 255 characters")
@@ -38,14 +33,6 @@ public class TaskRequest {
 
     public void setParentId(Long parentId) {
         this.parentId = parentId;
-    }
-
-    public Long getUserId() {
-        return this.userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
     }
 
     public String getTitle() {

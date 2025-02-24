@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import todo.list.todo_list.dto.Task.TaskDTO;
@@ -13,6 +14,7 @@ import todo.list.todo_list.dto.Task.TaskRequest;
 import todo.list.todo_list.entity.Category;
 import todo.list.todo_list.entity.Task;
 import todo.list.todo_list.entity.User;
+import todo.list.todo_list.exception.AccessDeniedException;
 import todo.list.todo_list.exception.DuplicateCategoryException;
 import todo.list.todo_list.exception.ResourceConflictException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
@@ -38,14 +40,17 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskDTO createTask(TaskRequest request) {
-        if (!taskRepository.isTitleUnique(request.getTitle(), request.getUserId(), null)) {
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.getUserByUsername(username);
+
+        if (!taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)) {
             throw new ResourceConflictException("Title must be unique for the user");
         }
 
         if (hasDuplicateCategories(request.getCategoryNames())) {
             throw new DuplicateCategoryException("A task cannot have duplicate categories.");
         }
-        User user = userService.getUserById(request.getUserId());
 
         Task task = new Task();
         task.setUser(user);
@@ -56,6 +61,9 @@ public class TaskServiceImpl implements TaskService {
         if (request.getParentId() != null) {
             Task parentTask = taskRepository.findById(request.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Parent Task not found with ID: " + request.getParentId()));
+            if (!parentTask.getUser().getId().equals(user.getId())) {
+                throw new AccessDeniedException("Parent task must belong to the authenticated user.");
+            }
             task.setParentTask(parentTask);
         } else {
             task.setParentTask(null);
@@ -88,11 +96,15 @@ public class TaskServiceImpl implements TaskService {
             throw new DuplicateCategoryException("A task cannot have duplicate categories.");
         }
 
-        User user = userService.getUserById(request.getUserId());
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.getUserByUsername(username);
 
         if (request.getParentId() != null) {
             Task parentTask = taskRepository.findById(request.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Parent Task not found with ID: " + request.getParentId()));
+            if (!parentTask.getUser().getId().equals(user.getId())) {
+                throw new AccessDeniedException("Parent task must belong to the authenticated user.");
+            }
             existedTask.setParentTask(parentTask);
         } else {
             existedTask.setParentTask(null);
