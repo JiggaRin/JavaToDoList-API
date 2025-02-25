@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import todo.list.todo_list.dto.Category.CategoryDTO;
 import todo.list.todo_list.dto.Category.CategoryRequest;
 import todo.list.todo_list.entity.Category;
+import todo.list.todo_list.exception.CategoryInUseException;
 import todo.list.todo_list.exception.ResourceConflictException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.repository.CategoryRepository;
@@ -70,7 +71,9 @@ public class CategoryServiceImpl implements CategoryService {
     public void deleteCategory(Long catId) {
         Category existingCategory = categoryRepository.findById(catId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + catId));
-
+        if (categoryRepository.isCategoryInUse(existingCategory.getId())) {
+            throw new CategoryInUseException("Category cannot be deleted as it is assigned to one or more tasks.");
+        }
         categoryRepository.delete(existingCategory);
     }
 
