@@ -13,7 +13,10 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     @Query("SELECT t FROM Task t WHERE (:userId IS NULL OR t.user.id = :userId) AND t.parentTask IS NULL ORDER BY t.createdAt ASC")
     List<Task> findParentTasks(@Param("userId") Long userId);
+
     List<Task> findByUser(User user);
+
+    List<Task> findByParentTaskId(Long taskId);
 
     @Query("SELECT CASE WHEN COUNT(t) > 0 THEN false ELSE true END "
             + "FROM Task t WHERE t.title = :title AND t.user.id = :userId "

@@ -11,11 +11,13 @@ import org.springframework.stereotype.Service;
 
 import todo.list.todo_list.dto.Task.TaskDTO;
 import todo.list.todo_list.dto.Task.TaskRequest;
+import todo.list.todo_list.dto.Task.TaskStatusUpdateRequest;
 import todo.list.todo_list.entity.Category;
 import todo.list.todo_list.entity.Task;
 import todo.list.todo_list.entity.User;
 import todo.list.todo_list.exception.AccessDeniedException;
 import todo.list.todo_list.exception.DuplicateCategoryException;
+import todo.list.todo_list.exception.InvalidTaskStatusException;
 import todo.list.todo_list.exception.ResourceConflictException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.model.Status;
@@ -84,6 +86,20 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public TaskDTO updateTaskStatus(Long taskId, TaskStatusUpdateRequest request) {
+        Task existedTask = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
+
+        if (request.getStatus() == Status.DONE) {
+            validateTaskCompletion(taskId);
+        }
+
+        existedTask.setStatus(request.getStatus());
+
+        return new TaskDTO(taskRepository.save(existedTask));
+    }
+
+    @Override
     public TaskDTO updateTask(Long taskId, TaskRequest request) {
         Task existedTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
@@ -94,6 +110,10 @@ public class TaskServiceImpl implements TaskService {
 
         if (hasDuplicateCategories(request.getCategoryNames())) {
             throw new DuplicateCategoryException("A task cannot have duplicate categories.");
+        }
+
+        if (request.getStatus() == Status.DONE) {
+            validateTaskCompletion(taskId);
         }
 
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -180,5 +200,16 @@ public class TaskServiceImpl implements TaskService {
     private boolean hasDuplicateCategories(List<String> categoryNames) {
         Set<String> uniqueCategories = new HashSet<>(categoryNames);
         return uniqueCategories.size() < categoryNames.size();
+    }
+
+    private void validateTaskCompletion(Long taskId) {
+        List<Task> childTasks = taskRepository.findByParentTaskId(taskId);
+
+        boolean hasIncompleteChildTasks = childTasks.stream()
+                .anyMatch(task -> task.getStatus() != Status.DONE);
+
+        if (hasIncompleteChildTasks) {
+            throw new InvalidTaskStatusException("Cannot mark task " + taskId + " as DONE while child tasks are not completed.");
+        }
     }
 }

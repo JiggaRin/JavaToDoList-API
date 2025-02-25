@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import todo.list.todo_list.dto.Task.TaskDTO;
 import todo.list.todo_list.dto.Task.TaskRequest;
+import todo.list.todo_list.dto.Task.TaskStatusUpdateRequest;
 import todo.list.todo_list.service.TaskService;
 
 @RestController
@@ -86,5 +87,13 @@ public class TaskController {
         List<TaskDTO> tasks = taskService.getUserTasks(authentication.getName());
 
         return new ResponseEntity<>(tasks, HttpStatus.OK);
+    }
+
+    @PutMapping("/update-status/{taskId}")
+    @PreAuthorize("(hasRole('USER') and @taskService.isOwner(#taskId, authentication.name)) or hasRole('MODERATOR') or hasRole('ADMIN')")
+    public ResponseEntity<TaskDTO> updateTaskStatus(@PathVariable Long taskId, @Valid @RequestBody TaskStatusUpdateRequest request) {
+        TaskDTO task = taskService.updateTaskStatus(taskId, request);
+
+        return new ResponseEntity<>(task, HttpStatus.OK);
     }
 }

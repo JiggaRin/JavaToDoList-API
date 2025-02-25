@@ -10,6 +10,7 @@ import todo.list.todo_list.model.Status;
 import todo.list.todo_list.validation.EnumValidator;
 
 public class TaskRequest {
+
     private Long parentId;
 
     @NotEmpty(message = "Title cannot be empty")
@@ -20,7 +21,7 @@ public class TaskRequest {
     private String description;
 
     @NotNull(message = "Status is required")
-    @EnumValidator(enumClass = Status.class, message = "Status must be one of: TODO, IN_PROGRESS, DONE")
+    @EnumValidator(enumClass = Status.class, message = "Invalid status value. Status must be one of: TODO, IN_PROGRESS, DONE")
     private Status status;
 
     @NotEmpty(message = "Category names cannot be empty")

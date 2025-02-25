@@ -4,6 +4,7 @@ import java.util.List;
 
 import todo.list.todo_list.dto.Task.TaskDTO;
 import todo.list.todo_list.dto.Task.TaskRequest;
+import todo.list.todo_list.dto.Task.TaskStatusUpdateRequest;
 
 public interface TaskService {
 
@@ -12,6 +13,8 @@ public interface TaskService {
     TaskDTO getTask(Long taskId);
 
     TaskDTO updateTask(Long taskId, TaskRequest request);
+
+    TaskDTO updateTaskStatus(Long taskId, TaskStatusUpdateRequest request);
 
     void deleteTask(Long taskId);
 
@@ -22,4 +25,5 @@ public interface TaskService {
     List<TaskDTO> getUserTasks(String username);
 
     boolean isOwner(Long taskId, String username);
+
 }
