@@ -3,10 +3,11 @@ package todo.list.todo_list.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,12 +15,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import todo.list.todo_list.dto.Task.TaskDTO;
 import todo.list.todo_list.dto.Task.TaskRequest;
 import todo.list.todo_list.dto.Task.TaskStatusUpdateRequest;
+import todo.list.todo_list.security.CustomUserDetails;
 import todo.list.todo_list.service.TaskService;
 
 @RestController
@@ -65,11 +68,15 @@ public class TaskController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @GetMapping("/")
+    @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
-    public ResponseEntity<List<TaskDTO>> getAllParentTasks() {
-        List<TaskDTO> tasks = taskService.getAllParentTasks();
-
+    public ResponseEntity<Page<TaskDTO>> getAllParentTasks(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        Page<TaskDTO> tasks = taskService.getAllTasks(null, search, page, size, sortBy, direction);
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 
@@ -82,9 +89,15 @@ public class TaskController {
     }
 
     @GetMapping("/my-tasks")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('MODERATOR')")
-    public ResponseEntity<List<TaskDTO>> getUserTasks(Authentication authentication) {
-        List<TaskDTO> tasks = taskService.getUserTasks(authentication.getName());
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<Page<TaskDTO>> getUserTasks(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        Page<TaskDTO> tasks = taskService.getAllTasks(userDetails.getId(), search, page, size, sortBy, direction);
 
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }

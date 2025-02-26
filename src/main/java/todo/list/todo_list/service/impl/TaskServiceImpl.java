@@ -6,6 +6,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -164,10 +167,10 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskDTO> getAllParentTasks() {
-        return taskRepository.findParentTasks(null).stream()
-                .map(TaskDTO::new)
-                .collect(Collectors.toList());
+    public Page<TaskDTO> getAllTasks(Long userId, String search, int page, int size, String sortBy, String direction) {
+        Page<Task> tasks = getTasksAccordingAdditionalParams(userId, search, page, size, sortBy, direction);
+
+        return tasks.map(TaskDTO::new);
     }
 
     @Override
@@ -184,17 +187,8 @@ public class TaskServiceImpl implements TaskService {
     public boolean isOwner(Long taskId, String username) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
+                
         return task.getUser().getUsername().equals(username);
-    }
-
-    @Override
-    public List<TaskDTO> getUserTasks(String username) {
-        User user = userService.getUserByUsername(username);
-
-        List<Task> tasks = taskRepository.findParentTasks(user.getId());
-        return tasks.stream()
-                .map(TaskDTO::new)
-                .collect(Collectors.toList());
     }
 
     private Set<Category> fetchOrCreateCategories(List<String> categoryNames) {
@@ -218,5 +212,12 @@ public class TaskServiceImpl implements TaskService {
         if (hasIncompleteChildTasks) {
             throw new CannotProceedException("Cannot proceed with task " + taskId + " while child tasks are not completed.");
         }
+    }
+
+    private Page<Task> getTasksAccordingAdditionalParams(Long userId, String search, int page, int size, String sortBy, String direction) {
+        Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        PageRequest pageable = PageRequest.of(page, size, sort);
+        
+        return taskRepository.findParentTasks(userId, search, pageable);
     }
 }
