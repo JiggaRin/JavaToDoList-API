@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import todo.list.todo_list.dto.Registration.RegistrationRequest;
 import todo.list.todo_list.dto.Registration.RegistrationResponse;
@@ -15,6 +16,7 @@ import todo.list.todo_list.entity.User;
 import todo.list.todo_list.exception.CannotProceedException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.exception.UserAlreadyExistsException;
+import todo.list.todo_list.repository.RefreshTokenRepository;
 import todo.list.todo_list.repository.UserRepository;
 import todo.list.todo_list.service.UserService;
 
@@ -23,10 +25,12 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenRepository refreshTokenRepository;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, RefreshTokenRepository refreshTokenRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     @Override
@@ -75,6 +79,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void changePassword(Long userId, ChangePasswordRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -85,6 +90,7 @@ public class UserServiceImpl implements UserService {
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+        refreshTokenRepository.deleteByUsername(user.getUsername());
     }
 
     @Override
