@@ -37,12 +37,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(JsonProcessingException.class)
     public ResponseEntity<Object> handleJsonProcessingException(JsonProcessingException ex) {
-        String errorMessage = ex.getMessage();
-
-        if (errorMessage.contains("Invalid value for enum Status")) {
-            errorMessage = "The value provided for 'Status' is invalid. Allowed values are: [TODO, IN_PROGRESS, DONE].";
-        }
-
-        return new ResponseEntity<>(errorMessage, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(ex.getOriginalMessage(), HttpStatus.BAD_REQUEST);
     }
 }

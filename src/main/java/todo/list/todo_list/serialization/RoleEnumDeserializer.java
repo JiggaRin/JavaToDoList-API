@@ -7,17 +7,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 
-import todo.list.todo_list.model.Status;
+import todo.list.todo_list.model.Role;
 
-public class StatusEnumDeserializer extends JsonDeserializer<Status> {
+public class RoleEnumDeserializer extends JsonDeserializer<Role> {
 
     @Override
-    public Status deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+    public Role deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
         String value = jp.getText().toUpperCase();
         try {
-            return Status.valueOf(value);
+            return Role.valueOf(value);
         } catch (IllegalArgumentException e) {
-            throw new JsonProcessingException("Invalid value for enum Status: " + value + ". Allowed values: TODO, IN_PROGRESS, DONE.") {};
+            throw new JsonProcessingException("Invalid value for Role: '" + value + "'. Allowed values: USER, MODERATOR") {};
         }
     }
 }

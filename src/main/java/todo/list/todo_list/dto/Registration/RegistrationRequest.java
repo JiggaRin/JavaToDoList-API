@@ -1,24 +1,53 @@
 package todo.list.todo_list.dto.Registration;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import todo.list.todo_list.model.Role;
+import todo.list.todo_list.validation.EnumValidator;
 
 public class RegistrationRequest {
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
+
+    @NotEmpty(message = "Username cannot be empty")
+    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @Pattern(regexp = "^[a-zA-Z0-9_\\-\\.]+$", message = "Username can only contain letters, numbers, underscores, hyphens, and periods")
     private String username;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email should be valid")
+    @Pattern(regexp = "^[A-Za-zà-ÿÀ-ß'\\- ]+$", message = "Invalid characters in first name")
+    @Size(max = 50, message = "First name must be less than 50 characters")
+    private String firstName;
+
+    @Size(max = 50, message = "Last name must be less than 50 characters")
+    @Pattern(regexp = "^[A-Za-zà-ÿÀ-ß'\\- ]+$", message = "Invalid characters in last name")
+    private String lastName;
+
+    @NotEmpty(message = "Email cannot be empty")
+    @Email(message = "Invalid email format")
+    @Size(max = 255, message = "Email must be less than 255 characters")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters long")
+    @NotEmpty(message = "Password cannot be empty")
+    @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,100}$",
+            message = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character")
     private String password;
+
+    @NotNull(message = "Role cannot be null. Allowed roles: USER, MODERATOR")
+    @EnumValidator(enumClass = Role.class, message = "Invalid role. Allowed roles: USER, MODERATOR")
+    private Role role;
 
     public String getUsername() {
         return this.username;
+    }
+
+    public String getFirstName() {
+        return this.firstName;
+    }
+
+    public String getLastName() {
+        return this.lastName;
     }
 
     public String getEmail() {
@@ -27,5 +56,9 @@ public class RegistrationRequest {
 
     public String getPassword() {
         return this.password;
+    }
+
+    public Role getRole() {
+        return this.role;
     }
 }
