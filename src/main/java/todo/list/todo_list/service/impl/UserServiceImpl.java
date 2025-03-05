@@ -57,8 +57,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         userMapper.updateUserFromRequest(request, user);
-
-        return new UserDTO(userRepository.save(user));
+        return userMapper.toUserDTO(userRepository.save(user));
     }
 
     @Override

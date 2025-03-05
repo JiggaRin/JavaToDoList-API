@@ -1,7 +1,5 @@
 package todo.list.todo_list.dto.User;
 
-import todo.list.todo_list.entity.User;
-
 public class UserDTO {
 
     private Long id;
@@ -11,14 +9,6 @@ public class UserDTO {
     private String email;
 
     public UserDTO() {
-    }
-
-    public UserDTO(User user) {
-        this.id = user.getId();
-        this.username = user.getUsername();
-        this.firstName = user.getFirstName();
-        this.lastName = user.getLastName();
-        this.email = user.getEmail();
     }
 
     public Long getId() {
