@@ -61,7 +61,7 @@ public class User implements UserDetails {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks = new ArrayList<>();
 
     public Long getId() {
@@ -160,12 +160,12 @@ public class User implements UserDetails {
 
     public void addTask(Task task) {
         tasks.add(task);
-        task.setUser(this);
+        task.setOwner(this);
     }
 
     public void removeTask(Task task) {
         tasks.remove(task);
-        task.setUser(null);
+        task.setOwner(null);
     }
 
     

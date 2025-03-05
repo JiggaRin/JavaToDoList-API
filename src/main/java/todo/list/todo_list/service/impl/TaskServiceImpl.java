@@ -58,7 +58,7 @@ public class TaskServiceImpl implements TaskService {
         }
 
         Task task = new Task();
-        task.setUser(user);
+        task.setOwner(user);
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setStatus(request.getStatus() != null ? request.getStatus() : Status.TODO);
@@ -66,7 +66,7 @@ public class TaskServiceImpl implements TaskService {
         if (request.getParentId() != null) {
             Task parentTask = taskRepository.findById(request.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Parent Task not found with ID: " + request.getParentId()));
-            if (!parentTask.getUser().getId().equals(user.getId())) {
+            if (!parentTask.getOwner().getId().equals(user.getId())) {
                 throw new AccessDeniedException("Parent task must belong to the authenticated user.");
             }
             task.setParentTask(parentTask);
@@ -107,7 +107,7 @@ public class TaskServiceImpl implements TaskService {
         Task existedTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        if (!taskRepository.isTitleUnique(request.getTitle(), existedTask.getUser().getId(), taskId)) {
+        if (!taskRepository.isTitleUnique(request.getTitle(), existedTask.getOwner().getId(), taskId)) {
             throw new ResourceConflictException("Title must be unique for the user.");
         }
 
@@ -125,7 +125,7 @@ public class TaskServiceImpl implements TaskService {
         if (request.getParentId() != null) {
             Task parentTask = taskRepository.findById(request.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Parent Task not found with ID: " + request.getParentId()));
-            if (!parentTask.getUser().getId().equals(user.getId())) {
+            if (!parentTask.getOwner().getId().equals(user.getId())) {
                 throw new AccessDeniedException("Parent task must belong to the authenticated user.");
             }
             existedTask.setParentTask(parentTask);
@@ -133,7 +133,7 @@ public class TaskServiceImpl implements TaskService {
             existedTask.setParentTask(null);
         }
 
-        existedTask.setUser(user);
+        existedTask.setOwner(user);
         existedTask.setTitle(request.getTitle());
         existedTask.setDescription(request.getDescription());
         existedTask.setStatus(request.getStatus());
@@ -176,7 +176,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public List<TaskDTO> getTasksByUser(Long userId) {
         User user = userService.getUserById(userId);
-        List<Task> tasks = taskRepository.findByUser(user);
+        List<Task> tasks = taskRepository.findByOwner(user);
 
         return tasks.stream()
                 .map(TaskDTO::new)
@@ -188,7 +188,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
                 
-        return task.getUser().getUsername().equals(username);
+        return task.getOwner().getUsername().equals(username);
     }
 
     private Set<Category> fetchOrCreateCategories(List<String> categoryNames) {

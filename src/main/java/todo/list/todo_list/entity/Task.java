@@ -36,7 +36,7 @@ public class Task {
 
     @ManyToOne
     @JoinColumn(name="user_id", nullable = false)
-    private User user;
+    private User owner;
 
     @Column(name = "title", nullable = false)
     private String title;
@@ -67,10 +67,10 @@ public class Task {
 
     public Task() {}
 
-    public Task(Long id, Task parentTask, User user, String title, String description, Status status, LocalDateTime createdAt, LocalDateTime updatedAt, List<Task> subTasks) {
+    public Task(Long id, Task parentTask, User owner, String title, String description, Status status, LocalDateTime createdAt, LocalDateTime updatedAt, List<Task> subTasks) {
         this.id = id;
         this.parentTask = parentTask;
-        this.user = user;
+        this.owner = owner;
         this.title = title;
         this.description = description;
         this.status = status;
@@ -95,12 +95,12 @@ public class Task {
         this.parentTask = parentTask;
     }
 
-    public User getUser() {
-        return this.user;
+    public User getOwner() {
+        return this.owner;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setOwner(User owner) {
+        this.owner = owner;
     }
 
     public String getTitle() {

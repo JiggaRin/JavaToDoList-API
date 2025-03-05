@@ -30,7 +30,7 @@ public class TaskDTO {
 
     public TaskDTO(Task task) {
         this.id = task.getId();
-        this.userId = task.getUser().getId();
+        this.userId = task.getOwner().getId();
         this.parentId = (task.getParentTask() != null) ? task.getParentTask().getId() : null;
         this.title = task.getTitle();
         this.description = task.getDescription();

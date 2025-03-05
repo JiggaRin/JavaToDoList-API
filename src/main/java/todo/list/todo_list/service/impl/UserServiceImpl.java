@@ -1,7 +1,5 @@
 package todo.list.todo_list.service.impl;
 
-import java.util.Optional;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +14,7 @@ import todo.list.todo_list.entity.User;
 import todo.list.todo_list.exception.CannotProceedException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.exception.UserAlreadyExistsException;
+import todo.list.todo_list.mapper.UserMapper;
 import todo.list.todo_list.repository.RefreshTokenRepository;
 import todo.list.todo_list.repository.UserRepository;
 import todo.list.todo_list.service.UserService;
@@ -26,11 +25,13 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final UserMapper userMapper;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, RefreshTokenRepository refreshTokenRepository) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, RefreshTokenRepository refreshTokenRepository, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -42,13 +43,8 @@ public class UserServiceImpl implements UserService {
             throw new UserAlreadyExistsException("Email is already taken");
         }
 
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
+        User user = userMapper.fromRegistrationRequest(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole());
 
         userRepository.save(user);
 
@@ -60,20 +56,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        Optional.ofNullable(request.getEmail())
-                .filter(email -> !userRepository.existsByEmail(email, user.getId()))
-                .ifPresentOrElse(
-                        user::setEmail,
-                        () -> {
-                            if (request.getEmail() != null) {
-                                throw new UserAlreadyExistsException("Email is already taken");
-
-                            }
-                        }
-                );
-
-        Optional.ofNullable(request.getFirstName()).ifPresent(user::setFirstName);
-        Optional.ofNullable(request.getLastName()).ifPresent(user::setLastName);
+        userMapper.updateUserFromRequest(request, user);
 
         return new UserDTO(userRepository.save(user));
     }

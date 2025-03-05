@@ -3,11 +3,15 @@ package todo.list.todo_list.dto.User;
 import todo.list.todo_list.entity.User;
 
 public class UserDTO {
+
     private Long id;
     private String username;
     private String firstName;
     private String lastName;
     private String email;
+
+    public UserDTO() {
+    }
 
     public UserDTO(User user) {
         this.id = user.getId();
@@ -32,7 +36,6 @@ public class UserDTO {
     public void setUsername(String username) {
         this.username = username;
     }
-
 
     public String getFirstName() {
         return this.firstName;
