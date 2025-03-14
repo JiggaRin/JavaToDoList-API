@@ -23,6 +23,7 @@ import todo.list.todo_list.exception.CannotProceedException;
 import todo.list.todo_list.exception.DuplicateCategoryException;
 import todo.list.todo_list.exception.ResourceConflictException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
+import todo.list.todo_list.mapper.TaskMapper;
 import todo.list.todo_list.model.Status;
 import todo.list.todo_list.repository.CategoryRepository;
 import todo.list.todo_list.repository.TaskRepository;
@@ -36,16 +37,17 @@ public class TaskServiceImpl implements TaskService {
     private final UserService userService;
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
+    private final TaskMapper taskMapper;
 
-    public TaskServiceImpl(UserService userService, TaskRepository taskRepository, CategoryRepository categoryRepository) {
+    public TaskServiceImpl(UserService userService, TaskRepository taskRepository, CategoryRepository categoryRepository, TaskMapper taskMapper) {
         this.userService = userService;
         this.taskRepository = taskRepository;
         this.categoryRepository = categoryRepository;
+        this.taskMapper = taskMapper;
     }
 
     @Override
     public TaskDTO createTask(TaskRequest request) {
-
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userService.getUserByUsername(username);
 
@@ -57,11 +59,9 @@ public class TaskServiceImpl implements TaskService {
             throw new DuplicateCategoryException("A task cannot have duplicate categories.");
         }
 
-        Task task = new Task();
+        Task task = taskMapper.fromTaskRequest(request);
         task.setOwner(user);
-        task.setTitle(request.getTitle());
-        task.setDescription(request.getDescription());
-        task.setStatus(request.getStatus() != null ? request.getStatus() : Status.TODO);
+        task.setStatus(request.getStatus() != null ? request.getStatus() : Status.TODO); // Override if null
 
         if (request.getParentId() != null) {
             Task parentTask = taskRepository.findById(request.getParentId())
@@ -77,7 +77,11 @@ public class TaskServiceImpl implements TaskService {
         Set<Category> categories = fetchOrCreateCategories(request.getCategoryNames());
         task.setCategories(categories);
 
-        return new TaskDTO(taskRepository.save(task));
+        Task savedTask = taskRepository.save(task);
+        if (savedTask == null) {
+            throw new IllegalStateException("Failed to save task");
+        }
+        return taskMapper.toTaskDTO(savedTask);
     }
 
     @Override
@@ -85,7 +89,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        return new TaskDTO(task);
+        return taskMapper.toTaskDTO(task);
     }
 
     @Override
@@ -99,7 +103,7 @@ public class TaskServiceImpl implements TaskService {
 
         existedTask.setStatus(request.getStatus());
 
-        return new TaskDTO(taskRepository.save(existedTask));
+        return taskMapper.toTaskDTO(taskRepository.save(existedTask));
     }
 
     @Override
@@ -122,6 +126,9 @@ public class TaskServiceImpl implements TaskService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userService.getUserByUsername(username);
 
+        taskMapper.updateTaskFromRequest(request, existedTask);
+        existedTask.setOwner(user);
+
         if (request.getParentId() != null) {
             Task parentTask = taskRepository.findById(request.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Parent Task not found with ID: " + request.getParentId()));
@@ -133,22 +140,14 @@ public class TaskServiceImpl implements TaskService {
             existedTask.setParentTask(null);
         }
 
-        existedTask.setOwner(user);
-        existedTask.setTitle(request.getTitle());
-        existedTask.setDescription(request.getDescription());
-        existedTask.setStatus(request.getStatus());
-
-        Set<Category> categories = request.getCategoryNames().stream()
-                .map(name -> {
-                    Category category = categoryRepository.findByName(name)
-                            .orElseGet(() -> categoryRepository.save(new Category(name)));
-                    return category;
-                })
-                .collect(Collectors.toSet());
-
+        Set<Category> categories = fetchOrCreateCategories(request.getCategoryNames());
         existedTask.setCategories(categories);
 
-        return new TaskDTO(taskRepository.save(existedTask));
+        Task savedTask = taskRepository.save(existedTask);
+        if (savedTask == null) {
+            throw new IllegalStateException("Failed to save task with ID: " + taskId);
+        }
+        return taskMapper.toTaskDTO(savedTask);
     }
 
     @Override
@@ -158,7 +157,7 @@ public class TaskServiceImpl implements TaskService {
         validateChildTaskCompletion(existindTask.getId());
 
         List<Task> childTasks = taskRepository.findByParentTaskId(taskId);
-        
+
         for (Task childTask : childTasks) {
             taskRepository.delete(childTask);
         }
@@ -170,7 +169,7 @@ public class TaskServiceImpl implements TaskService {
     public Page<TaskDTO> getAllTasks(Long userId, String search, int page, int size, String sortBy, String direction) {
         Page<Task> tasks = getTasksAccordingAdditionalParams(userId, search, page, size, sortBy, direction);
 
-        return tasks.map(TaskDTO::new);
+        return tasks.map(taskMapper::toTaskDTO);
     }
 
     @Override
@@ -179,7 +178,7 @@ public class TaskServiceImpl implements TaskService {
         List<Task> tasks = taskRepository.findByOwner(user);
 
         return tasks.stream()
-                .map(TaskDTO::new)
+                .map(taskMapper::toTaskDTO)
                 .collect(Collectors.toList());
     }
 
@@ -187,7 +186,7 @@ public class TaskServiceImpl implements TaskService {
     public boolean isOwner(Long taskId, String username) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
-                
+
         return task.getOwner().getUsername().equals(username);
     }
 
@@ -217,7 +216,7 @@ public class TaskServiceImpl implements TaskService {
     private Page<Task> getTasksAccordingAdditionalParams(Long userId, String search, int page, int size, String sortBy, String direction) {
         Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         PageRequest pageable = PageRequest.of(page, size, sort);
-        
+
         return taskRepository.findParentTasks(userId, search, pageable);
     }
 }

@@ -3,12 +3,9 @@ package todo.list.todo_list.dto.Task;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import todo.list.todo_list.entity.Category;
-import todo.list.todo_list.entity.Task;
 import todo.list.todo_list.model.Status;
 
 public class TaskDTO {
@@ -18,7 +15,7 @@ public class TaskDTO {
     private String title;
     private String description;
     private Status status;
-    
+
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Set<String> categories;
 
@@ -28,50 +25,35 @@ public class TaskDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public TaskDTO(Task task) {
-        this.id = task.getId();
-        this.userId = task.getOwner().getId();
-        this.parentId = (task.getParentTask() != null) ? task.getParentTask().getId() : null;
-        this.title = task.getTitle();
-        this.description = task.getDescription();
-        this.status = task.getStatus();
-        this.createdAt = task.getCreatedAt();
-        this.updatedAt = task.getUpdatedAt();
-        this.categories = task.getCategories().stream().map(Category::getName).collect(Collectors.toSet());
-
-        if (task.getSubTasks() != null && !task.getSubTasks().isEmpty()) {
-            this.subTasks = task.getSubTasks().stream()
-                    .map(TaskDTO::new)
-                    .collect(Collectors.toList());
-        }
+    public TaskDTO() {
     }
 
     public Long getId() {
-        return this.id;
+        return id;
     }
 
     public void setId(Long id) {
         this.id = id;
     }
 
-    public Long getParentId() {
-        return this.parentId;
-    }
-
-    public void setParentId(Long parentId) {
-        this.parentId = parentId;
-    }
-
     public Long getUserId() {
-        return this.userId;
+        return userId;
     }
 
     public void setUserId(Long userId) {
         this.userId = userId;
     }
 
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
+    }
+
     public String getTitle() {
-        return this.title;
+        return title;
     }
 
     public void setTitle(String title) {
@@ -79,7 +61,7 @@ public class TaskDTO {
     }
 
     public String getDescription() {
-        return this.description;
+        return description;
     }
 
     public void setDescription(String description) {
@@ -87,15 +69,23 @@ public class TaskDTO {
     }
 
     public Status getStatus() {
-        return this.status;
+        return status;
     }
 
     public void setStatus(Status status) {
         this.status = status;
     }
 
+    public Set<String> getCategories() {
+        return categories;
+    }
+
+    public void setCategories(Set<String> categories) {
+        this.categories = categories;
+    }
+
     public List<TaskDTO> getSubTasks() {
-        return this.subTasks;
+        return subTasks;
     }
 
     public void setSubTasks(List<TaskDTO> subTasks) {
@@ -103,7 +93,7 @@ public class TaskDTO {
     }
 
     public LocalDateTime getCreatedAt() {
-        return this.createdAt;
+        return createdAt;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {
@@ -111,19 +101,10 @@ public class TaskDTO {
     }
 
     public LocalDateTime getUpdatedAt() {
-        return this.updatedAt;
+        return updatedAt;
     }
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-
-    public Set<String> getCategories() {
-        return this.categories;
-    }
-
-    public void setCategories(Set<String> categories) {
-        this.categories = categories;
     }
 }
