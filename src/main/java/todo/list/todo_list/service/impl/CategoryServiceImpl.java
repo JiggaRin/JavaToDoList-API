@@ -12,6 +12,7 @@ import todo.list.todo_list.entity.Category;
 import todo.list.todo_list.exception.CategoryInUseException;
 import todo.list.todo_list.exception.ResourceConflictException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
+import todo.list.todo_list.mapper.CategoryMapper;
 import todo.list.todo_list.repository.CategoryRepository;
 import todo.list.todo_list.service.CategoryService;
 
@@ -20,15 +21,17 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Autowired
     private final CategoryRepository categoryRepository;
+    private final CategoryMapper categoryMapper;
 
-    public CategoryServiceImpl(CategoryRepository categoryRepository) {
+    public CategoryServiceImpl(CategoryRepository categoryRepository, CategoryMapper categoryMapper) {
         this.categoryRepository = categoryRepository;
+        this.categoryMapper = categoryMapper;
     }
 
     @Override
     public List<CategoryDTO> getAllCategories() {
         return categoryRepository.findAll()
-                .stream().map(category -> new CategoryDTO(category))
+                .stream().map(categoryMapper::toCategoryDTO)
                 .collect(Collectors.toList());
     }
 
@@ -41,7 +44,7 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findByName(request.getName())
                 .orElseGet(() -> categoryRepository.save(new Category(request.getName())));
 
-        return new CategoryDTO(category);
+        return categoryMapper.toCategoryDTO(category);
     }
 
     @Override
@@ -49,7 +52,7 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findById(catId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + catId));
 
-        return new CategoryDTO(category);
+        return categoryMapper.toCategoryDTO(category);
     }
 
     @Override
@@ -64,7 +67,7 @@ public class CategoryServiceImpl implements CategoryService {
         existedCategory.setName(request.getName());
         categoryRepository.save(existedCategory);
 
-        return new CategoryDTO(categoryRepository.save(existedCategory));
+        return categoryMapper.toCategoryDTO(categoryRepository.save(existedCategory));
     }
 
     @Override
