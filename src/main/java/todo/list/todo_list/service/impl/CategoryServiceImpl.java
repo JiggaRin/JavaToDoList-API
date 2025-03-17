@@ -3,7 +3,6 @@ package todo.list.todo_list.service.impl;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import todo.list.todo_list.dto.Category.CategoryDTO;
@@ -19,7 +18,6 @@ import todo.list.todo_list.service.CategoryService;
 @Service
 public class CategoryServiceImpl implements CategoryService {
 
-    @Autowired
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
 
@@ -48,17 +46,17 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryDTO getCategory(Long catId) {
-        Category category = categoryRepository.findById(catId)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + catId));
+    public CategoryDTO getCategory(Long categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
 
         return categoryMapper.toCategoryDTO(category);
     }
 
     @Override
-    public CategoryDTO updateCategory(Long catId, CategoryRequest request) {
-        Category existedCategory = categoryRepository.findById(catId)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + catId));
+    public CategoryDTO updateCategory(Long categoryId, CategoryRequest request) {
+        Category existedCategory = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
 
         if (!categoryRepository.isCategoryNameUnique(request.getName(), existedCategory.getId())) {
             throw new ResourceConflictException("Category name must be unique.");
@@ -71,9 +69,9 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public void deleteCategory(Long catId) {
-        Category existingCategory = categoryRepository.findById(catId)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + catId));
+    public void deleteCategory(Long categoryId) {
+        Category existingCategory = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
         if (categoryRepository.isCategoryInUse(existingCategory.getId())) {
             throw new CategoryInUseException("Category cannot be deleted as it is assigned to one or more tasks.");
         }

@@ -3,6 +3,8 @@ package todo.list.todo_list.service.impl;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import todo.list.todo_list.dto.Auth.AuthRequest;
@@ -16,6 +18,7 @@ import todo.list.todo_list.service.UserService;
 @Service
 public class AuthServiceImpl implements AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
     private final UserService userService;
@@ -36,5 +39,32 @@ public class AuthServiceImpl implements AuthService {
         String refreshToken = refreshTokenService.createRefreshToken(authRequest.getUsername()).getRefreshToken();
 
         return new AuthResponse(accessToken, refreshToken);
+    }
+
+    @Override
+    public AuthResponse refreshToken(String refreshToken) {
+        if (refreshToken == null || !jwtUtil.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("Invalid or expired refresh token");
+        }
+
+        String username = jwtUtil.extractUsername(refreshToken);
+        User user = userService.getUserByUsername(username);
+        List<String> roles = user.getAuthorities().stream()
+                .map(authority -> authority.getAuthority())
+                .collect(Collectors.toList());
+
+        String newAccessToken = jwtUtil.generateAccessToken(username, roles);
+        log.info("Refreshed access token for user {}", username);
+        return new AuthResponse(newAccessToken, refreshToken);
+    }
+
+    @Override
+    public void logout(String refreshToken) {
+        if (refreshToken == null || !jwtUtil.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("Invalid refresh token");
+        }
+        String username = jwtUtil.extractUsername(refreshToken);
+        refreshTokenService.deleteByUsername(username);
+        log.info("User {} logged out successfully", username);
     }
 }
