@@ -37,10 +37,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public RegistrationResponse registerUser(@Valid RegistrationRequest request) {
         if (userRepository.existsByUsername(request.getUsername(), null)) {
-            throw new UserAlreadyExistsException("Username is already taken");
+            throw new UserAlreadyExistsException("Username is already taken!");
         }
         if (userRepository.existsByEmail(request.getEmail(), null)) {
-            throw new UserAlreadyExistsException("Email is already taken");
+            throw new UserAlreadyExistsException("Email is already in use!");
         }
 
         User user = userMapper.fromRegistrationRequest(request);
