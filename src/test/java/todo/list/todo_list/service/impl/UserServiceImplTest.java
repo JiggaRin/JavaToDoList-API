@@ -45,7 +45,6 @@ class UserServiceImplTest {
 
     @Test
     void registerUser_successfulRegistration() {
-        // Arrange
         RegistrationRequest request = new RegistrationRequest();
         request.setUsername("testuser");
         request.setEmail("test@example.com");
