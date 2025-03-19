@@ -18,4 +18,11 @@ public class ChangePasswordRequest {
     public String getNewPassword() {
         return this.newPassword;
     }
+    
+    public void setOldPassword(String oldPassword) {
+        this.oldPassword = oldPassword;
+    }
+    public void setNewPassword(String newPassword) {
+        this.newPassword = newPassword;
+    }
 }

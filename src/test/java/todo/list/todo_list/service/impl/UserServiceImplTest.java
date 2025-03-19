@@ -11,9 +11,11 @@ import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,13 +24,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import todo.list.todo_list.dto.Registration.RegistrationRequest;
 import todo.list.todo_list.dto.Registration.RegistrationResponse;
+import todo.list.todo_list.dto.User.ChangePasswordRequest;
 import todo.list.todo_list.dto.User.UpdateRequest;
 import todo.list.todo_list.dto.User.UserDTO;
 import todo.list.todo_list.entity.User;
+import todo.list.todo_list.exception.CannotProceedException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.exception.UserAlreadyExistsException;
 import todo.list.todo_list.mapper.UserMapper;
 import todo.list.todo_list.model.Role;
+import todo.list.todo_list.repository.RefreshTokenRepository;
 import todo.list.todo_list.repository.UserRepository;
 
 class UserServiceImplTest {
@@ -41,6 +46,9 @@ class UserServiceImplTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -81,6 +89,7 @@ class UserServiceImplTest {
 
         assertNotNull(response);
         assertEquals("User registered successfully", response.getMessage());
+        
         verify(userRepository).existsByUsername("testuser", null);
         verify(userRepository).existsByEmail("test@example.com", null);
         verify(userMapper).fromRegistrationRequest(request);
@@ -122,6 +131,7 @@ class UserServiceImplTest {
             userService.registerUser(request);
         });
         assertEquals("Email is already in use!", exception.getMessage());
+        
         verify(userRepository).existsByUsername("testuser", null);
         verify(userRepository).existsByEmail("test@example.com", null);
         verify(userMapper, never()).fromRegistrationRequest(any());
@@ -161,6 +171,7 @@ class UserServiceImplTest {
 
         assertNotNull(response);
         assertSame(userDTO, response);
+        
         verify(userRepository).findById(userId);
         verify(userRepository).existsByEmail("new@example.com", userId);
         verify(userMapper).updateUserFromRequest(request, user);
@@ -180,6 +191,7 @@ class UserServiceImplTest {
             userService.updateUser(userId, request);
         });
         assertEquals("User not found", exception.getMessage());
+        
         verify(userRepository).findById(userId);
         verify(userRepository, never()).existsByEmail(anyString(), anyLong());
         verify(userMapper, never()).updateUserFromRequest(any(), any());
@@ -203,10 +215,65 @@ class UserServiceImplTest {
         UserAlreadyExistsException exception = assertThrows(UserAlreadyExistsException.class, () -> {
             userService.updateUser(userId, request);
         });
+        
         assertEquals("Email is already in use!", exception.getMessage());
         verify(userRepository).findById(userId);
         verify(userRepository).existsByEmail("new@example.com", userId);
         verify(userMapper, never()).updateUserFromRequest(any(), any());
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void changePassword_successfulChange() {
+        Long userId = 1L;
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setOldPassword("Password123!");
+        request.setNewPassword("Password123!!");
+
+        User user = new User();
+        user.setId(userId);
+        user.setUsername("testuser");
+        user.setPassword("oldHashedPass");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(request.getOldPassword(), user.getPassword())).thenReturn(true);
+        when(passwordEncoder.encode(request.getNewPassword())).thenReturn("encodedPass");
+        
+        userService.changePassword(userId, request);
+
+        InOrder inOrder = inOrder(userRepository, refreshTokenRepository);
+        inOrder.verify(userRepository).save(user);
+        inOrder.verify(refreshTokenRepository).deleteByUsername("testuser");
+        
+        verify(passwordEncoder).encode("Password123!!");
+        verify(userRepository).save(user);
+        verify(refreshTokenRepository).deleteByUsername("testuser");
+    }
+
+    @Test
+    void changePassword_wrongOldPassword_throwsException() {
+        Long userId = 1L;
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setOldPassword("Password123!");
+        request.setNewPassword("Password123!!");
+
+        User user = new User();
+        user.setId(userId);
+        user.setUsername("testuser");
+        user.setPassword("oldHashedPass");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(request.getOldPassword(), user.getPassword())).thenReturn(false);
+
+        CannotProceedException exception = assertThrows(CannotProceedException.class, () -> {
+            userService.changePassword(userId, request);
+        });
+        assertEquals("Old password is incorrect", exception.getMessage());
+        
+        verify(userRepository).findById(userId);
+        verify(passwordEncoder).matches(request.getOldPassword(), user.getPassword());
+        verify(passwordEncoder, never()).encode("Password123!!");
+        verify(userRepository, never()).save(user);
+        verify(refreshTokenRepository, never()).deleteByUsername("testuser");
     }
 }

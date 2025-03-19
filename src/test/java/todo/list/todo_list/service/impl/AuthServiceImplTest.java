@@ -9,9 +9,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -105,6 +107,11 @@ class AuthServiceImplTest {
         doNothing().when(refreshTokenService).deleteByUsername(username);
 
         authService.logout(refreshToken);
+
+        InOrder inOrder = inOrder(jwtUtil, refreshTokenService);
+        inOrder.verify(jwtUtil).validateToken(refreshToken);
+        inOrder.verify(jwtUtil).extractUsername(refreshToken);
+        inOrder.verify(refreshTokenService).deleteByUsername(username);
 
         verify(jwtUtil).extractUsername(refreshToken);
         verify(refreshTokenService).deleteByUsername(username);
