@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,7 +49,6 @@ class AuthServiceImplTest {
 
     @Test
     void authenticate_successfulAuthentication() {
-        // Arrange
         AuthRequest request = new AuthRequest();
         request.setUsername("testuser");
         request.setPassword("Password123!");
@@ -92,5 +92,37 @@ class AuthServiceImplTest {
         verify(userService).getUserByUsername("unknownuser");
         verify(jwtUtil, never()).generateAccessToken(anyString(), anyList());
         verify(refreshTokenService, never()).createRefreshToken(anyString());
+    }
+
+    @Test
+    void logout_deletesRefreshTokenByUsername() {
+        String refreshToken = "valid-refresh-token";
+        String username = "testuser";
+
+        when(jwtUtil.validateToken(refreshToken)).thenReturn(true);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn(username);
+
+        doNothing().when(refreshTokenService).deleteByUsername(username);
+
+        authService.logout(refreshToken);
+
+        verify(jwtUtil).extractUsername(refreshToken);
+        verify(refreshTokenService).deleteByUsername(username);
+    }
+
+    @Test
+    void logout_invalidToken_throwsException() {
+        String refreshToken = "invalid-refresh-token";
+
+        when(jwtUtil.validateToken(refreshToken)).thenReturn(false);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> authService.logout(refreshToken)
+        );
+        assertEquals("Invalid refresh token", exception.getMessage());
+        verify(jwtUtil).validateToken(refreshToken);
+        verify(jwtUtil, never()).extractUsername(refreshToken);
+        verify(refreshTokenService, never()).deleteByUsername(anyString());
     }
 }

@@ -59,7 +59,7 @@ public class TaskServiceImpl implements TaskService {
 
         Task task = taskMapper.fromTaskRequest(request);
         task.setOwner(user);
-        task.setStatus(request.getStatus() != null ? request.getStatus() : Status.TODO); // Override if null
+        task.setStatus(request.getStatus() != null ? request.getStatus() : Status.TODO);
 
         if (request.getParentId() != null) {
             Task parentTask = taskRepository.findById(request.getParentId())
