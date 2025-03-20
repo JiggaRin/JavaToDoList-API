@@ -24,6 +24,7 @@ import todo.list.todo_list.dto.Auth.AuthRequest;
 import todo.list.todo_list.dto.Auth.AuthResponse;
 import todo.list.todo_list.entity.RefreshToken;
 import todo.list.todo_list.entity.User;
+import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.model.Role;
 import todo.list.todo_list.security.JwtUtil;
 import todo.list.todo_list.service.RefreshTokenService;
@@ -131,5 +132,80 @@ class AuthServiceImplTest {
         verify(jwtUtil).validateToken(refreshToken);
         verify(jwtUtil, never()).extractUsername(refreshToken);
         verify(refreshTokenService, never()).deleteByUsername(anyString());
+    }
+
+    @Test
+    void refreshToken_successfulRefreshing() {
+        String refreshToken = "valid-refresh-token";
+        RefreshToken token = new RefreshToken();
+        token.setRefreshToken(refreshToken);
+
+        when(jwtUtil.validateToken(refreshToken)).thenReturn(true);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn("testuser");
+
+        User user = new User();
+        user.setUsername("testuser");
+        user.setRole(Role.USER);
+
+        when(userService.getUserByUsername("testuser")).thenReturn(user);
+        when(jwtUtil.generateAccessToken("testuser", List.of("ROLE_USER"))).thenReturn("new-access-token");
+
+        AuthResponse response = authService.refreshToken(refreshToken);
+        assertNotNull(response);
+
+        InOrder inOrder = inOrder(jwtUtil, userService);
+        inOrder.verify(jwtUtil).validateToken(refreshToken);
+        inOrder.verify(jwtUtil).extractUsername(refreshToken);
+        inOrder.verify(userService).getUserByUsername(user.getUsername());
+        inOrder.verify(jwtUtil).generateAccessToken(user.getUsername(), List.of("ROLE_USER"));
+
+        verify(jwtUtil).validateToken(refreshToken);
+        verify(jwtUtil).extractUsername(refreshToken);
+        verify(userService).getUserByUsername(user.getUsername());
+        verify(jwtUtil).generateAccessToken(user.getUsername(), List.of("ROLE_USER"));
+    }
+
+    @Test
+    void refreshToken_invalidRefreshToken_throwsException() {
+        String refreshToken = "invalid-refresh-token";
+
+        when(jwtUtil.validateToken(refreshToken))
+                .thenThrow(new IllegalArgumentException("Invalid or expired refresh token"));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            authService.refreshToken(refreshToken);
+        });
+
+        assertEquals("Invalid or expired refresh token", exception.getMessage());
+
+        verify(jwtUtil).validateToken(refreshToken);
+        verify(jwtUtil, never()).extractUsername(anyString());
+        verify(userService, never()).getUserByUsername(anyString());
+        verify(jwtUtil, never()).generateAccessToken(anyString(), List.of(anyString()));
+    }
+
+    @Test
+    void refreshToken_userNotFound_throwsException() {
+        String refreshToken = "valid-refresh-token";
+        String username = "testuser";
+        RefreshToken token = new RefreshToken();
+        token.setRefreshToken(refreshToken);
+
+        when(jwtUtil.validateToken(refreshToken)).thenReturn(true);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn(username);
+
+        when(userService.getUserByUsername("testuser"))
+                .thenThrow(new ResourceNotFoundException("User not found with username: " + username));
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
+            authService.refreshToken(refreshToken);
+        });
+
+        assertEquals("User not found with username: " + username, exception.getMessage());
+
+        verify(jwtUtil).validateToken(refreshToken);
+        verify(jwtUtil).extractUsername(refreshToken);
+        verify(userService).getUserByUsername(username);
+        verify(jwtUtil, never()).generateAccessToken(anyString(), List.of(anyString()));
     }
 }
