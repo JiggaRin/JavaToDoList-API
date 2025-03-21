@@ -39,8 +39,7 @@ public class CategoryServiceImpl implements CategoryService {
             throw new ResourceConflictException("Category name must be unique.");
         }
 
-        Category category = categoryRepository.findByName(request.getName())
-                .orElseGet(() -> categoryRepository.save(new Category(request.getName())));
+        Category category = categoryRepository.save(new Category(request.getName()));
 
         return categoryMapper.toCategoryDTO(category);
     }
