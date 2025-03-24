@@ -62,7 +62,6 @@ public class CategoryServiceImpl implements CategoryService {
         }
 
         existedCategory.setName(request.getName());
-        categoryRepository.save(existedCategory);
 
         return categoryMapper.toCategoryDTO(categoryRepository.save(existedCategory));
     }
