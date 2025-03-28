@@ -195,7 +195,7 @@ public class TaskServiceImpl implements TaskService {
                 .collect(Collectors.toSet());
     }
 
-    private boolean hasDuplicateCategories(List<String> categoryNames) {
+    boolean hasDuplicateCategories(List<String> categoryNames) {
         Set<String> uniqueCategories = new HashSet<>(categoryNames);
         return uniqueCategories.size() < categoryNames.size();
     }
