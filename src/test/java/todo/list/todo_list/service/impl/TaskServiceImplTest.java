@@ -1,26 +1,29 @@
 package todo.list.todo_list.service.impl;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -28,10 +31,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import todo.list.todo_list.dto.Task.TaskDTO;
 import todo.list.todo_list.dto.Task.TaskRequest;
+import todo.list.todo_list.dto.Task.TaskStatusUpdateRequest;
 import todo.list.todo_list.entity.Category;
 import todo.list.todo_list.entity.Task;
 import todo.list.todo_list.entity.User;
 import todo.list.todo_list.exception.AccessDeniedException;
+import todo.list.todo_list.exception.CannotProceedException;
 import todo.list.todo_list.exception.DuplicateCategoryException;
 import todo.list.todo_list.exception.ResourceConflictException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
@@ -325,5 +330,124 @@ class TaskServiceImplTest {
             verify(taskRepository).save(any(Task.class));
             verify(taskMapper, never()).toTaskDTO(any(Task.class));
         }
+    }
+
+    @Test
+    void updateTaskStatus_successfulUpdateStatusToDone() {
+        Long taskId = 1L;
+        TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
+        request.setStatus(Status.DONE);
+
+        Task task = new Task();
+        task.setId(taskId);
+        task.setStatus(Status.TODO);
+
+        Task updatedTask = new Task();
+        updatedTask.setId(taskId);
+        updatedTask.setStatus(Status.DONE);
+
+        TaskDTO dto = new TaskDTO();
+        dto.setId(taskId);
+        dto.setStatus(Status.DONE);
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(taskRepository.save(task)).thenReturn(updatedTask);
+        when(taskMapper.toTaskDTO(updatedTask)).thenReturn(dto);
+
+        TaskServiceImpl taskServiceSpy = spy(taskService);
+        doNothing().when(taskServiceSpy).validateChildTaskCompletion(taskId);
+
+        TaskDTO result = taskServiceSpy.updateTaskStatus(taskId, request);
+        assertNotNull(result);
+        assertEquals(Status.DONE, result.getStatus());
+        assertEquals(taskId, result.getId());
+
+        verify(taskRepository).findById(taskId);
+        verify(taskServiceSpy).validateChildTaskCompletion(taskId);
+        verify(taskRepository).save(task);
+        verify(taskMapper).toTaskDTO(updatedTask);
+    }
+
+    @Test
+    void updateTaskStatus_successfulUpdateStatusToAnotherStatuses() {
+        Long taskId = 1L;
+        TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
+        request.setStatus(Status.IN_PROGRESS);
+
+        Task task = new Task();
+        task.setId(taskId);
+        task.setStatus(Status.TODO);
+
+        Task updatedTask = new Task();
+        updatedTask.setId(taskId);
+        updatedTask.setStatus(Status.IN_PROGRESS);
+
+        TaskDTO dto = new TaskDTO();
+        dto.setId(taskId);
+        dto.setStatus(Status.IN_PROGRESS);
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(taskRepository.save(task)).thenReturn(updatedTask);
+        when(taskMapper.toTaskDTO(updatedTask)).thenReturn(dto);
+
+        TaskDTO result = taskService.updateTaskStatus(taskId, request);
+        assertNotNull(result);
+        assertEquals(Status.IN_PROGRESS, result.getStatus());
+        assertEquals(taskId, result.getId());
+
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository).save(task);
+        verify(taskMapper).toTaskDTO(updatedTask);
+    }
+
+    @Test
+    void updateTaskStatus_taskNotFound_throwsException() {
+        Long taskId = 1L;
+        TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
+        request.setStatus(Status.DONE);
+
+        Task task = new Task();
+        task.setId(taskId);
+        task.setStatus(Status.TODO);
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
+            taskService.updateTaskStatus(taskId, request);
+        });
+
+        assertEquals("Task not found with ID: " + taskId, exception.getMessage());
+
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository, never()).save(any(Task.class));
+        verify(taskMapper, never()).toTaskDTO(any(Task.class));
+    }
+
+    @Test
+    void updateTaskStatus_incompletedChildTasks_throwsException() {
+        Long taskId = 1L;
+        TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
+        request.setStatus(Status.DONE);
+
+        Task task = new Task();
+        task.setId(taskId);
+        task.setStatus(Status.TODO);
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+
+        TaskServiceImpl taskServiceSpy = spy(taskService);
+        doThrow(new CannotProceedException("Cannot proceed with task " + taskId + " while child tasks are not completed."))
+                .when(taskServiceSpy).validateChildTaskCompletion(taskId);
+
+        CannotProceedException exception = assertThrows(CannotProceedException.class, () -> {
+            taskServiceSpy.updateTaskStatus(taskId, request);
+        });
+
+        assertEquals("Cannot proceed with task " + taskId + " while child tasks are not completed.", exception.getMessage());
+
+        verify(taskRepository).findById(taskId);
+        verify(taskServiceSpy).validateChildTaskCompletion(taskId);
+        verify(taskRepository, never()).save(any(Task.class));
+        verify(taskMapper, never()).toTaskDTO(any(Task.class));
     }
 }

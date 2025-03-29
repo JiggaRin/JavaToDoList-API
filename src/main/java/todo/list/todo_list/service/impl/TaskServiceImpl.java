@@ -200,7 +200,7 @@ public class TaskServiceImpl implements TaskService {
         return uniqueCategories.size() < categoryNames.size();
     }
 
-    private void validateChildTaskCompletion(Long taskId) {
+    void validateChildTaskCompletion(Long taskId) {
         List<Task> childTasks = taskRepository.findByParentTaskId(taskId);
 
         boolean hasIncompleteChildTasks = childTasks.stream()
