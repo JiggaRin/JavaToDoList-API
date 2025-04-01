@@ -152,9 +152,12 @@ public class TaskServiceImpl implements TaskService {
     public void deleteTask(Long taskId) {
         Task existindTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
-        validateChildTaskCompletion(existindTask.getId());
 
         List<Task> childTasks = taskRepository.findByParentTaskId(taskId);
+
+        if(!childTasks.isEmpty()) {
+            validateChildTaskCompletion(existindTask.getId());
+        }
 
         for (Task childTask : childTasks) {
             taskRepository.delete(childTask);

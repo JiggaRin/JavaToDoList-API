@@ -1,29 +1,31 @@
 package todo.list.todo_list.service.impl;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -449,5 +451,106 @@ class TaskServiceImplTest {
         verify(taskServiceSpy).validateChildTaskCompletion(taskId);
         verify(taskRepository, never()).save(any(Task.class));
         verify(taskMapper, never()).toTaskDTO(any(Task.class));
+    }
+
+    @Test
+    void deleteTask_successfulDelete() {
+        Long taskId = 1L;
+        Task parentTask = new Task();
+        parentTask.setId(taskId);
+        parentTask.setTitle("Parent Title");
+
+        Task child1 = new Task();
+        child1.setId(2L);
+        child1.setStatus(Status.DONE);
+
+        Task child2 = new Task();
+        child2.setId(3L);
+        child2.setStatus(Status.IN_PROGRESS);
+
+        List<Task> childTasks = Arrays.asList(child1, child2);
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(parentTask));
+        when(taskRepository.findByParentTaskId(taskId)).thenReturn(childTasks);
+
+        TaskServiceImpl taskServiceSpy = spy(taskService);
+        doNothing().when(taskServiceSpy).validateChildTaskCompletion(taskId);
+        taskServiceSpy.deleteTask(taskId);
+
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository).findByParentTaskId(taskId);
+        verify(taskRepository, times(childTasks.size() + 1)).delete(any(Task.class));
+    }
+
+    @Test
+    void deleteTask_childTaskNotCompleted_throwsExceptions() {
+        Long taskId = 1L;
+        Task parentTask = new Task();
+        parentTask.setId(taskId);
+        parentTask.setTitle("Parent Title");
+
+        Task child1 = new Task();
+        child1.setId(2L);
+        child1.setStatus(Status.TODO);
+        child1.setParentTask(parentTask);
+
+        Task child2 = new Task();
+        child2.setId(3L);
+        child2.setStatus(Status.IN_PROGRESS);
+        child2.setParentTask(parentTask);
+
+        List<Task> childTasks = Arrays.asList(child1, child2);
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(parentTask));
+
+        when(taskRepository.findByParentTaskId(taskId)).thenReturn(childTasks);
+
+        CannotProceedException exception = assertThrows(CannotProceedException.class, () -> {
+            taskService.deleteTask(taskId);
+        });
+
+        assertEquals("Cannot proceed with task " + taskId + " while child tasks are not completed.", exception.getMessage());
+
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository, times(2)).findByParentTaskId(taskId);
+        verify(taskRepository, never()).delete(any(Task.class));
+    }
+
+    @Test
+    void deleteTask_taskNotFound_throwsException() {
+        Long taskId = 1L;
+        Task parenTask = new Task();
+        parenTask.setId(2L);
+        parenTask.setTitle("parent Task");
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
+            taskService.deleteTask(taskId);
+        });
+
+        assertEquals("Task not found with ID: " + taskId, exception.getMessage());
+
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository, never()).findByParentTaskId(taskId);
+        verify(taskRepository, never()).delete(any(Task.class));
+    }
+
+    @Test
+    void deleteTask_noChildTasks_successfulDelete() {
+        Long taskId = 1L;
+        Task parentTask = new Task();
+        parentTask.setId(taskId);
+        parentTask.setTitle("Parent task");
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(parentTask));
+        when(taskRepository.findByParentTaskId(taskId)).thenReturn(Collections.emptyList());
+
+        doNothing().when(taskRepository).delete(any(Task.class));
+        taskService.deleteTask(taskId);
+
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository).findByParentTaskId(taskId);
+        verify(taskRepository).delete(any(Task.class));
     }
 }
