@@ -1,24 +1,26 @@
 package todo.list.todo_list.service.impl;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -60,6 +62,7 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("Register User with valid data returns RegistrationResponse")
     void registerUser_successfulRegistration() {
         RegistrationRequest request = new RegistrationRequest();
         request.setUsername("testuser");
@@ -71,7 +74,7 @@ class UserServiceImplTest {
 
         User user = new User();
         user.setUsername("testuser");
-        user.setPassword("Password123!");
+        user.setEmail("test@example.com");
         user.setFirstName("Test");
         user.setRole(Role.USER);
 
@@ -89,7 +92,9 @@ class UserServiceImplTest {
 
         assertNotNull(response);
         assertEquals("User registered successfully", response.getMessage());
-        
+        assertEquals("testuser", response.getUsername());
+        assertEquals("test@example.com", response.getEmail());
+
         verify(userRepository).existsByUsername("testuser", null);
         verify(userRepository).existsByEmail("test@example.com", null);
         verify(userMapper).fromRegistrationRequest(request);
@@ -98,6 +103,7 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("Register User with Username which is already existed throws UserAlreadyExistsException")
     void registerUser_duplicateUsername_throwsException() {
         RegistrationRequest request = new RegistrationRequest();
         request.setUsername("testuser");
@@ -118,6 +124,7 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("Register User with email which is already in use by another user throws UserAlreadyExistsException")
     void registerUser_duplicateEmail_throwsException() {
         RegistrationRequest request = new RegistrationRequest();
         request.setUsername("testuser");
@@ -131,7 +138,7 @@ class UserServiceImplTest {
             userService.registerUser(request);
         });
         assertEquals("Email is already in use!", exception.getMessage());
-        
+
         verify(userRepository).existsByUsername("testuser", null);
         verify(userRepository).existsByEmail("test@example.com", null);
         verify(userMapper, never()).fromRegistrationRequest(any());
@@ -140,6 +147,7 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update User with valid data returns UserDTO")
     void updateUser_successfulUpdate() {
         Long userId = 1L;
         UpdateRequest request = new UpdateRequest();
@@ -162,6 +170,10 @@ class UserServiceImplTest {
         }).when(userMapper).updateUserFromRequest(request, user);
 
         UserDTO userDTO = new UserDTO();
+        userDTO.setFirstName("NewFirst");
+        userDTO.setLastName("NewLast");
+        userDTO.setEmail("new@example.com");
+
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.existsByEmail("new@example.com", userId)).thenReturn(false);
         when(userRepository.save(user)).thenReturn(user);
@@ -171,7 +183,7 @@ class UserServiceImplTest {
 
         assertNotNull(response);
         assertSame(userDTO, response);
-        
+
         verify(userRepository).findById(userId);
         verify(userRepository).existsByEmail("new@example.com", userId);
         verify(userMapper).updateUserFromRequest(request, user);
@@ -180,6 +192,7 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update User with User ID which is not found throws ResourceNotFoundException")
     void updateUser_userNotFound_throwsException() {
         Long userId = 1L;
         UpdateRequest request = new UpdateRequest();
@@ -191,7 +204,7 @@ class UserServiceImplTest {
             userService.updateUser(userId, request);
         });
         assertEquals("User not found", exception.getMessage());
-        
+
         verify(userRepository).findById(userId);
         verify(userRepository, never()).existsByEmail(anyString(), anyLong());
         verify(userMapper, never()).updateUserFromRequest(any(), any());
@@ -199,6 +212,7 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update User with email which is already in use by another user throws UserAlreadyExistsException")
     void updateUser_duplicateEmail_throwsException() {
         Long userId = 1L;
         UpdateRequest request = new UpdateRequest();
@@ -215,7 +229,7 @@ class UserServiceImplTest {
         UserAlreadyExistsException exception = assertThrows(UserAlreadyExistsException.class, () -> {
             userService.updateUser(userId, request);
         });
-        
+
         assertEquals("Email is already in use!", exception.getMessage());
         verify(userRepository).findById(userId);
         verify(userRepository).existsByEmail("new@example.com", userId);
@@ -224,6 +238,7 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("Change Password with valid data returns void")
     void changePassword_successfulChange() {
         Long userId = 1L;
         ChangePasswordRequest request = new ChangePasswordRequest();
@@ -236,21 +251,22 @@ class UserServiceImplTest {
         user.setPassword("oldHashedPass");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches(request.getOldPassword(), user.getPassword())).thenReturn(true);
+        when(passwordEncoder.matches("Password123!", "oldHashedPass")).thenReturn(true);
         when(passwordEncoder.encode(request.getNewPassword())).thenReturn("encodedPass");
-        
+        when(userRepository.save(user)).thenReturn(user);
+
         userService.changePassword(userId, request);
 
-        InOrder inOrder = inOrder(userRepository, refreshTokenRepository);
+        InOrder inOrder = inOrder(userRepository, refreshTokenRepository, passwordEncoder);
+        inOrder.verify(userRepository).findById(userId);
+        inOrder.verify(passwordEncoder).matches("Password123!", "oldHashedPass");
+        inOrder.verify(passwordEncoder).encode("Password123!!");
         inOrder.verify(userRepository).save(user);
         inOrder.verify(refreshTokenRepository).deleteByUsername("testuser");
-        
-        verify(passwordEncoder).encode("Password123!!");
-        verify(userRepository).save(user);
-        verify(refreshTokenRepository).deleteByUsername("testuser");
     }
 
     @Test
+    @DisplayName("Change Password with incorect Old Password throws CannotProceedException")
     void changePassword_wrongOldPassword_throwsException() {
         Long userId = 1L;
         ChangePasswordRequest request = new ChangePasswordRequest();
@@ -269,7 +285,7 @@ class UserServiceImplTest {
             userService.changePassword(userId, request);
         });
         assertEquals("Old password is incorrect", exception.getMessage());
-        
+
         verify(userRepository).findById(userId);
         verify(passwordEncoder).matches(request.getOldPassword(), user.getPassword());
         verify(passwordEncoder, never()).encode("Password123!!");

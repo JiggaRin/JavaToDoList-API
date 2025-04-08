@@ -5,11 +5,13 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import todo.list.todo_list.dto.Auth.AuthRequest;
 import todo.list.todo_list.dto.Auth.AuthResponse;
 import todo.list.todo_list.entity.User;
+import todo.list.todo_list.exception.BadCredentialsException;
 import todo.list.todo_list.security.JwtUtil;
 import todo.list.todo_list.service.AuthService;
 import todo.list.todo_list.service.RefreshTokenService;
@@ -22,16 +24,23 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
     private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthServiceImpl(JwtUtil jwtUtil, RefreshTokenService refreshTokenService, UserService userService) {
+    public AuthServiceImpl(JwtUtil jwtUtil, RefreshTokenService refreshTokenService, UserService userService, PasswordEncoder passwordEncoder) {
         this.jwtUtil = jwtUtil;
         this.refreshTokenService = refreshTokenService;
         this.userService = userService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public AuthResponse authenticate(AuthRequest authRequest) {
         User user = userService.getUserByUsername(authRequest.getUsername());
+
+        if (!passwordEncoder.matches(authRequest.getPassword(), user.getPassword())) {
+            throw new BadCredentialsException("Invalid username or password");
+        }
+
         List<String> roles = user.getAuthorities().stream()
                 .map(authority -> authority.getAuthority())
                 .collect(Collectors.toList());

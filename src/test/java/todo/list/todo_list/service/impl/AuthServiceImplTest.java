@@ -1,29 +1,33 @@
 package todo.list.todo_list.service.impl;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import todo.list.todo_list.dto.Auth.AuthRequest;
 import todo.list.todo_list.dto.Auth.AuthResponse;
 import todo.list.todo_list.entity.RefreshToken;
 import todo.list.todo_list.entity.User;
+import todo.list.todo_list.exception.BadCredentialsException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.model.Role;
 import todo.list.todo_list.security.JwtUtil;
@@ -41,6 +45,9 @@ class AuthServiceImplTest {
     @Mock
     private RefreshTokenService refreshTokenService;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     @InjectMocks
     private AuthServiceImpl authService;
 
@@ -51,6 +58,7 @@ class AuthServiceImplTest {
     }
 
     @Test
+    @DisplayName("Authenticate with valid credentials returns tokens")
     void authenticate_successfulAuthentication() {
         AuthRequest request = new AuthRequest();
         request.setUsername("testuser");
@@ -65,6 +73,7 @@ class AuthServiceImplTest {
         refreshToken.setRefreshToken("refresh-token-value");
 
         when(userService.getUserByUsername("testuser")).thenReturn(user);
+        when(passwordEncoder.matches("Password123!", "encodedPassword")).thenReturn(true);
         when(jwtUtil.generateAccessToken("testuser", List.of("ROLE_USER"))).thenReturn("access-token-value");
         when(refreshTokenService.createRefreshToken("testuser")).thenReturn(refreshToken);
 
@@ -74,11 +83,13 @@ class AuthServiceImplTest {
         assertEquals("access-token-value", response.getAccessToken());
         assertEquals("refresh-token-value", response.getRefreshToken());
         verify(userService).getUserByUsername("testuser");
+        verify(passwordEncoder).matches("Password123!", "encodedPassword");
         verify(jwtUtil).generateAccessToken("testuser", List.of("ROLE_USER"));
         verify(refreshTokenService).createRefreshToken("testuser");
     }
 
     @Test
+    @DisplayName("Authenticate with unknown user throws UsernameNotFoundException")
     void authenticate_userNotFound_throwsException() {
         AuthRequest request = new AuthRequest();
         request.setUsername("unknownuser");
@@ -98,6 +109,32 @@ class AuthServiceImplTest {
     }
 
     @Test
+    @DisplayName("Authenticate with invalid password throws BadCredentialsException")
+    void authenticate_invalidPassword_throwsException() {
+        AuthRequest request = new AuthRequest();
+        request.setUsername("testuser");
+        request.setPassword("WrongPassword");
+
+        User user = new User();
+        user.setUsername("testuser");
+        user.setPassword("encodedPassword");
+
+        when(userService.getUserByUsername("testuser")).thenReturn(user);
+        when(passwordEncoder.matches("WrongPassword", "encodedPassword")).thenReturn(false);
+
+        BadCredentialsException exception = assertThrows(
+                BadCredentialsException.class,
+                () -> authService.authenticate(request)
+        );
+        assertEquals("Invalid username or password", exception.getMessage());
+        verify(userService).getUserByUsername("testuser");
+        verify(passwordEncoder).matches("WrongPassword", "encodedPassword");
+        verify(jwtUtil, never()).generateAccessToken(anyString(), anyList());
+        verify(refreshTokenService, never()).createRefreshToken(anyString());
+    }
+    
+    @Test
+    @DisplayName("Logout with valid refresh token deletes token by username")
     void logout_deletesRefreshTokenByUsername() {
         String refreshToken = "valid-refresh-token";
         String username = "testuser";
@@ -119,6 +156,7 @@ class AuthServiceImplTest {
     }
 
     @Test
+    @DisplayName("Logout with invalid refresh token throws IllegalArgumentException")
     void logout_invalidToken_throwsException() {
         String refreshToken = "invalid-refresh-token";
 
@@ -135,6 +173,7 @@ class AuthServiceImplTest {
     }
 
     @Test
+    @DisplayName("Refresh token with valid token returns new access token")
     void refreshToken_successfulRefreshing() {
         String refreshToken = "valid-refresh-token";
         RefreshToken token = new RefreshToken();
@@ -166,15 +205,17 @@ class AuthServiceImplTest {
     }
 
     @Test
+    @DisplayName("Refresh token with invalid token throws IllegalArgumentException")
     void refreshToken_invalidRefreshToken_throwsException() {
         String refreshToken = "invalid-refresh-token";
 
         when(jwtUtil.validateToken(refreshToken))
                 .thenThrow(new IllegalArgumentException("Invalid or expired refresh token"));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            authService.refreshToken(refreshToken);
-        });
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> authService.refreshToken(refreshToken)
+        );
 
         assertEquals("Invalid or expired refresh token", exception.getMessage());
 
@@ -185,6 +226,7 @@ class AuthServiceImplTest {
     }
 
     @Test
+    @DisplayName("Refresh token with valid token but missing user throws ResourceNotFoundException")
     void refreshToken_userNotFound_throwsException() {
         String refreshToken = "valid-refresh-token";
         String username = "testuser";
@@ -197,9 +239,10 @@ class AuthServiceImplTest {
         when(userService.getUserByUsername("testuser"))
                 .thenThrow(new ResourceNotFoundException("User not found with username: " + username));
 
-        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-            authService.refreshToken(refreshToken);
-        });
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> authService.refreshToken(refreshToken)
+        );
 
         assertEquals("User not found with username: " + username, exception.getMessage());
 
