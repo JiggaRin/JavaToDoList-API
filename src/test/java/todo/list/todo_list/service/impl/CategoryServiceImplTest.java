@@ -1,26 +1,25 @@
 package todo.list.todo_list.service.impl;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Optional;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import todo.list.todo_list.dto.Category.CategoryDTO;
 import todo.list.todo_list.dto.Category.CategoryRequest;
@@ -31,6 +30,7 @@ import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.mapper.CategoryMapper;
 import todo.list.todo_list.repository.CategoryRepository;
 
+@ExtendWith(MockitoExtension.class)
 class CategoryServiceImplTest {
 
     @Mock
@@ -41,12 +41,6 @@ class CategoryServiceImplTest {
 
     @InjectMocks
     private CategoryServiceImpl categoryService;
-
-    @BeforeEach
-    @SuppressWarnings("unused")
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     @DisplayName("Create Category with valid data returns CategoryDTO")

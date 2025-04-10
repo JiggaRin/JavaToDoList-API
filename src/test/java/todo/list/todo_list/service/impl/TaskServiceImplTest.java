@@ -1,10 +1,24 @@
 package todo.list.todo_list.service.impl;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -13,21 +27,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -49,6 +49,7 @@ import todo.list.todo_list.repository.CategoryRepository;
 import todo.list.todo_list.repository.TaskRepository;
 import todo.list.todo_list.service.UserService;
 
+@ExtendWith(MockitoExtension.class)
 class TaskServiceImplTest {
 
     @Mock
@@ -66,13 +67,8 @@ class TaskServiceImplTest {
     @InjectMocks
     private TaskServiceImpl taskService;
 
-    @BeforeEach
-    @SuppressWarnings("unused")
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
+    @DisplayName("Create Task with valid data returns TaskDTO")
     void createTask_successfulCreation() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My New Task");
@@ -92,12 +88,15 @@ class TaskServiceImplTest {
         Set<Category> categories = new HashSet<>(Arrays.asList(work, urgent));
 
         Task task = new Task();
+        task.setId(1L);
         task.setOwner(user);
         task.setCategories(categories);
 
         TaskDTO dto = new TaskDTO();
         dto.setId(1L);
         dto.setTitle("My New Task");
+        dto.setDescription("A simple task");
+        dto.setStatus(Status.TODO);
         dto.setCategories(new HashSet<>(Arrays.asList("Work", "Urgent")));
 
         try (MockedStatic<SecurityContextHolder> mockedStatic = Mockito.mockStatic(SecurityContextHolder.class)) {
@@ -118,6 +117,8 @@ class TaskServiceImplTest {
             TaskDTO result = taskService.createTask(request);
             assertNotNull(result);
             assertEquals(request.getTitle(), result.getTitle());
+            assertEquals(request.getDescription(), result.getDescription());
+            assertEquals(Status.TODO, result.getStatus());
             assertEquals(new HashSet<>(request.getCategoryNames()), result.getCategories());
 
             verify(taskRepository).save(task);
@@ -125,6 +126,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Create Task with title which is NOT unique throws ResourceConflictException")
     void createTask_titleIsNotUnique_throwsException() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My New Task");
@@ -157,6 +159,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Create Task with duplicate Categories throws DuplicateCategoryException")
     void createTask_duplicateCategories_throwsException() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My New Task");
@@ -175,18 +178,14 @@ class TaskServiceImplTest {
             when(userService.getUserByUsername("testuser")).thenReturn(user);
             when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
 
-            TaskServiceImpl taskServiceSpy = spy(taskService);
-            when(taskServiceSpy.hasDuplicateCategories(request.getCategoryNames())).thenReturn(true);
-
             DuplicateCategoryException exception = assertThrows(DuplicateCategoryException.class, () -> {
-                taskServiceSpy.createTask(request);
+                taskService.createTask(request);
             });
 
             assertEquals("A task cannot have duplicate categories.", exception.getMessage());
 
             verify(userService).getUserByUsername("testuser");
             verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
-            verify(taskServiceSpy).hasDuplicateCategories(request.getCategoryNames());
             verify(taskMapper, never()).fromTaskRequest(request);
             verify(taskRepository, never()).save(any(Task.class));
             verify(taskMapper, never()).toTaskDTO(any(Task.class));
@@ -194,6 +193,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Create Task with parent task ID which is NOT found throws ResourceNotFoundException")
     void createTask_parentTaskNotFound_throwsException() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My New Task");
@@ -237,6 +237,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Create Task with corect parent task ID but the task is NOT owned by current user throws AccessDeniedException")
     void createTask_parentTaskNotOwnedByUser_throwsException() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My New Task");
@@ -284,6 +285,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Create Task with valid data but failed to save it throws IllegalStateException")
     void createTask_failedToSaveTask_throwsException() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My New Task");
@@ -336,6 +338,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task with valid data returns TaskDTO")
     void updateTask_successfulUpdate() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My Updated Task");
@@ -356,7 +359,7 @@ class TaskServiceImplTest {
 
         Long taskId = 1L;
         Task existedTask = new Task();
-        existedTask.setId(taskId);
+        existedTask.setId(1L);
         existedTask.setOwner(user);
         existedTask.setCategories(categories);
 
@@ -391,6 +394,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task with title which is NOT unique throws ResourceConflictException")
     void updateTask_titleIsNotUnique_throwsException() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My Updated Task");
@@ -421,6 +425,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task with duplicate Categories throws DuplicateCategoryException")
     void updateTask_duplicateCategories_throwsException() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My Updated Task");
@@ -456,11 +461,12 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task with valid data but child tasks in NOT completed throws CannotProceedException")
     void updateTask_childTaskNotCompleted_throwsException() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My Updated Task");
         request.setStatus(Status.DONE);
-        request.setCategoryNames(Arrays.asList("Cat1", "Cat1"));
+        request.setCategoryNames(Arrays.asList("Cat1", "Cat2"));
 
         User user = new User();
         user.setId(1L);
@@ -496,6 +502,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task with parent task ID which is NOT found throws ResourceNotFoundException")
     void updateTask_parentTaskNotFound_throwsException() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My Updated Task");
@@ -542,6 +549,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task with corect parent task ID but the task is NOT owned by current user throws AccessDeniedException")
     void updateTask_parentTaskNotOwnedByUser_throwsException() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My Updated Task");
@@ -596,6 +604,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task with valid data but failed to save it throws IllegalStateException")
     void updateTask_failedToSaveTask_throwsException() {
         TaskRequest request = new TaskRequest();
         request.setTitle("My Updated Task");
@@ -653,6 +662,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task Status with valid data(Status = DONE) returns TaskDTO")
     void updateTaskStatus_successfulUpdateStatusToDone() {
         Long taskId = 1L;
         TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
@@ -671,24 +681,22 @@ class TaskServiceImplTest {
         dto.setStatus(Status.DONE);
 
         when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(taskRepository.findByParentTaskId(taskId)).thenReturn(Collections.emptyList());
         when(taskRepository.save(task)).thenReturn(updatedTask);
         when(taskMapper.toTaskDTO(updatedTask)).thenReturn(dto);
 
-        TaskServiceImpl taskServiceSpy = spy(taskService);
-        doNothing().when(taskServiceSpy).validateChildTaskCompletion(taskId);
-
-        TaskDTO result = taskServiceSpy.updateTaskStatus(taskId, request);
+        TaskDTO result = taskService.updateTaskStatus(taskId, request);
         assertNotNull(result);
         assertEquals(Status.DONE, result.getStatus());
         assertEquals(taskId, result.getId());
 
         verify(taskRepository).findById(taskId);
-        verify(taskServiceSpy).validateChildTaskCompletion(taskId);
         verify(taskRepository).save(task);
         verify(taskMapper).toTaskDTO(updatedTask);
     }
 
     @Test
+    @DisplayName("Update Task Status with valid data(Status = IN_PROGRESS) returns TaskDTO")
     void updateTaskStatus_successfulUpdateStatusToAnotherStatuses() {
         Long taskId = 1L;
         TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
@@ -721,6 +729,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task Status with Task ID which is NOT found throws ResourceNotFoundException")
     void updateTaskStatus_taskNotFound_throwsException() {
         Long taskId = 1L;
         TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
@@ -744,6 +753,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task Status with valid data but child task(s) is NOT completed throws CannotProceedException")
     void updateTaskStatus_incompletedChildTasks_throwsException() {
         Long taskId = 1L;
         TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
@@ -772,6 +782,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Delete Task with child tasks returns void")
     void deleteTask_successfulDelete() {
         Long taskId = 1L;
         Task parentTask = new Task();
@@ -797,10 +808,13 @@ class TaskServiceImplTest {
 
         verify(taskRepository).findById(taskId);
         verify(taskRepository).findByParentTaskId(taskId);
-        verify(taskRepository, times(childTasks.size() + 1)).delete(any(Task.class));
+        verify(taskRepository).delete(child1);
+        verify(taskRepository).delete(child2);
+        verify(taskRepository).delete(parentTask);
     }
 
     @Test
+    @DisplayName("Delete Task without child task(s) returns void")
     void deleteTask_noChildTasks_successfulDelete() {
         Long taskId = 1L;
         Task parentTask = new Task();
@@ -819,6 +833,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Delete Task but child task(s) is NOT completed throws CannotProceedException")
     void deleteTask_childTaskNotCompleted_throwsExceptions() {
         Long taskId = 1L;
         Task parentTask = new Task();
@@ -853,6 +868,7 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Delete Task with Task ID which is NOT found throws ResourceNotFoundException")
     void deleteTask_taskNotFound_throwsException() {
         Long taskId = 1L;
         Task parenTask = new Task();
