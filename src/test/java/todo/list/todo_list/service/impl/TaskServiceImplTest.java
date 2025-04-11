@@ -1,24 +1,11 @@
 package todo.list.todo_list.service.impl;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -27,6 +14,21 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -335,6 +337,21 @@ class TaskServiceImplTest {
             verify(taskRepository).save(any(Task.class));
             verify(taskMapper, never()).toTaskDTO(any(Task.class));
         }
+    }
+
+    @Test
+    @DisplayName("Create Task but Task request in NULL throws IllegalArgumentException")
+    void createTask_nullRequest_throwsException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            taskService.createTask(null);
+        });
+        assertEquals("Task request cannot be null", exception.getMessage());
+
+        verify(userService, never()).getUserByUsername(anyString());
+        verify(taskRepository, never()).isTitleUnique(anyString(), any(), any());
+        verify(taskMapper, never()).fromTaskRequest(any());
+        verify(taskRepository, never()).save(any());
+        verify(taskMapper, never()).toTaskDTO(any());
     }
 
     @Test
@@ -662,6 +679,17 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task but Task request in NULL throws IllegalArgumentException")
+    void updateTask_nullRequest_throwsException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            taskService.updateTask(1L, null);
+        });
+        assertEquals("Task request cannot be null", exception.getMessage());
+
+        verify(taskRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("Update Task Status with valid data(Status = DONE) returns TaskDTO")
     void updateTaskStatus_successfulUpdateStatusToDone() {
         Long taskId = 1L;
@@ -779,6 +807,19 @@ class TaskServiceImplTest {
         verify(taskServiceSpy).validateChildTaskCompletion(taskId);
         verify(taskRepository, never()).save(any(Task.class));
         verify(taskMapper, never()).toTaskDTO(any(Task.class));
+    }
+
+    @Test
+    @DisplayName("Update Task Status but Task Status Update request in NULL throws IllegalArgumentException")
+    void updateTaskStatus_nullRequest_throwsException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            taskService.updateTaskStatus(1L, null);
+        });
+        assertEquals("Task Status Update request cannot be null", exception.getMessage());
+
+        verify(taskRepository, never()).findById(anyLong());
+        verify(taskRepository, never()).save(any());
+        verify(taskMapper, never()).toTaskDTO(any());
     }
 
     @Test

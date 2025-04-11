@@ -1,23 +1,25 @@
 package todo.list.todo_list.service.impl;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -127,6 +129,20 @@ class AuthServiceImplTest {
         verify(refreshTokenService, never()).createRefreshToken(anyString());
     }
     
+    @Test
+    @DisplayName("Authenticate but Auth request in NULL throws IllegalArgumentException")
+    void authenticate_nullRequest_throwsException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            authService.authenticate(null);
+        });
+        assertEquals("Auth request cannot be null", exception.getMessage());
+
+        verify(userService, never()).getUserByUsername(anyString());
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+        verify(jwtUtil, never()).generateAccessToken(anyString(), any());
+        verify(refreshTokenService, never()).createRefreshToken(anyString());
+    }
+
     @Test
     @DisplayName("Logout with valid refresh token deletes token by username")
     void logout_deletesRefreshTokenByUsername() {

@@ -35,6 +35,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse authenticate(AuthRequest authRequest) {
+        if (authRequest == null) {
+            throw new IllegalArgumentException("Auth request cannot be null");
+        }
         User user = userService.getUserByUsername(authRequest.getUsername());
 
         if (!passwordEncoder.matches(authRequest.getPassword(), user.getPassword())) {

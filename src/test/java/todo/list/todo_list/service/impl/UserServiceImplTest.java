@@ -1,25 +1,26 @@
 package todo.list.todo_list.service.impl;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -141,6 +142,21 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("Register User but Registration request in NULL throws IllegalArgumentException")
+    void registerUser_nullRequest_throwsException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            userService.registerUser(null);
+        });
+        assertEquals("Registration request cannot be null", exception.getMessage());
+
+        verify(userRepository, never()).existsByUsername(anyString(), anyLong());
+        verify(userRepository, never()).existsByEmail(anyString(), anyLong());
+        verify(userMapper, never()).fromRegistrationRequest(any());
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("Update User with valid data returns UserDTO")
     void updateUser_successfulUpdate() {
         Long userId = 1L;
@@ -232,6 +248,21 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update User but Update request in NULL throws IllegalArgumentException")
+    void updateUser_nullRequest_throwsException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            userService.updateUser(1L, null);
+        });
+        assertEquals("Update request cannot be null", exception.getMessage());
+
+        verify(userRepository, never()).findById(anyLong());
+        verify(userRepository, never()).existsByEmail(anyString(), anyLong());
+        verify(userMapper, never()).updateUserFromRequest(any(), any());
+        verify(userRepository, never()).save(any());
+        verify(userMapper, never()).toUserDTO(any());
+    }
+
+    @Test
     @DisplayName("Change Password with valid data returns void")
     void changePassword_successfulChange() {
         Long userId = 1L;
@@ -285,5 +316,20 @@ class UserServiceImplTest {
         verify(passwordEncoder, never()).encode("Password123!!");
         verify(userRepository, never()).save(user);
         verify(refreshTokenRepository, never()).deleteByUsername("testuser");
+    }
+
+    @Test
+    @DisplayName("Change Password but Change Password request in NULL throws IllegalArgumentException")
+    void changePassword_nullRequest_throwsException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            userService.changePassword(1L, null);
+        });
+        assertEquals("Change Password request cannot be null", exception.getMessage());
+
+        verify(userRepository, never()).findById(anyLong());
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any());
+        verify(refreshTokenRepository, never()).deleteByUsername(anyString());
     }
 }

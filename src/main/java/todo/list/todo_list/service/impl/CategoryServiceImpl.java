@@ -35,6 +35,9 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryDTO createCategory(CategoryRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Category request cannot be null");
+        }
         if (!categoryRepository.isCategoryNameUnique(request.getName(), null)) {
             throw new ResourceConflictException("Category name must be unique.");
         }
@@ -54,6 +57,10 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryDTO updateCategory(Long categoryId, CategoryRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Category request cannot be null");
+        }
+
         Category existedCategory = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
 

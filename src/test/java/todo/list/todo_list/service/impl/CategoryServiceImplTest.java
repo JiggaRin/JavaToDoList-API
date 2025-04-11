@@ -1,24 +1,25 @@
 package todo.list.todo_list.service.impl;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import todo.list.todo_list.dto.Category.CategoryDTO;
@@ -85,6 +86,19 @@ class CategoryServiceImplTest {
         verify(categoryRepository).isCategoryNameUnique(request.getName(), null);
         verify(categoryRepository, never()).save(any(Category.class));
         verify(categoryMapper, never()).toCategoryDTO(any(Category.class));
+    }
+
+    @Test
+    @DisplayName("Create Category but Category request in NULL throws IllegalArgumentException")
+    void createCategory_nullRequest_throwsException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            categoryService.createCategory(null);
+        });
+        assertEquals("Category request cannot be null", exception.getMessage());
+
+        verify(categoryRepository, never()).isCategoryNameUnique(anyString(), anyLong());
+        verify(categoryRepository, never()).save(any());
+        verify(categoryMapper, never()).toCategoryDTO(any());
     }
 
     @Test
@@ -160,6 +174,20 @@ class CategoryServiceImplTest {
         verify(categoryRepository).isCategoryNameUnique(request.getName(), categoryId);
         verify(categoryRepository, never()).save(any(Category.class));
         verify(categoryMapper, never()).toCategoryDTO(any(Category.class));
+    }
+
+    @Test
+    @DisplayName("Update Category but Category request in NULL throws IllegalArgumentException")
+    void UpdateCategory_nullRequest_throwsException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            categoryService.updateCategory(1L, null);
+        });
+        assertEquals("Category request cannot be null", exception.getMessage());
+
+        verify(categoryRepository, never()).findById(anyLong());
+        verify(categoryRepository, never()).isCategoryNameUnique(anyString(), anyLong());
+        verify(categoryRepository, never()).save(any());
+        verify(categoryMapper, never()).toCategoryDTO(any());
     }
 
     @Test

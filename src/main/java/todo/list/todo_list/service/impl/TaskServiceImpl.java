@@ -46,6 +46,9 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskDTO createTask(TaskRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Task request cannot be null");
+        }
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userService.getUserByUsername(username);
 
@@ -92,6 +95,9 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskDTO updateTaskStatus(Long taskId, TaskStatusUpdateRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Task Status Update request cannot be null");
+        }
         Task existedTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
@@ -106,6 +112,9 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskDTO updateTask(Long taskId, TaskRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Task request cannot be null");
+        }
         Task existedTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 

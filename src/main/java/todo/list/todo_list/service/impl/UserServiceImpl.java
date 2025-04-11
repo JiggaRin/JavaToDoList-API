@@ -36,6 +36,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public RegistrationResponse registerUser(@Valid RegistrationRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Registration request cannot be null");
+        }
         if (userRepository.existsByUsername(request.getUsername(), null)) {
             throw new UserAlreadyExistsException("Username is already taken!");
         }
@@ -51,8 +54,12 @@ public class UserServiceImpl implements UserService {
         return new RegistrationResponse("User registered successfully", user.getUsername(), user.getEmail());
     }
 
+    // TODO Check validation here and in Controller
     @Override
     public UserDTO updateUser(Long userId, @Valid UpdateRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Update request cannot be null");
+        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -67,6 +74,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void changePassword(Long userId, ChangePasswordRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Change Password request cannot be null");
+        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
