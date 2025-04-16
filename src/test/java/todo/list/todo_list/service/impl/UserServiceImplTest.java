@@ -1,26 +1,25 @@
 package todo.list.todo_list.service.impl;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Optional;
-
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -107,9 +106,10 @@ class UserServiceImplTest {
 
         when(userRepository.existsByUsername("testuser", null)).thenReturn(true);
 
-        UserAlreadyExistsException exception = assertThrows(UserAlreadyExistsException.class, () -> {
-            userService.registerUser(request);
-        });
+        UserAlreadyExistsException exception = assertThrows(
+                UserAlreadyExistsException.class,
+                () -> userService.registerUser(request)
+        );
         assertEquals("Username is already taken!", exception.getMessage());
         verify(userRepository).existsByUsername("testuser", null);
         verify(userRepository, never()).existsByEmail(anyString(), any());
@@ -129,9 +129,10 @@ class UserServiceImplTest {
         when(userRepository.existsByUsername("testuser", null)).thenReturn(false);
         when(userRepository.existsByEmail("test@example.com", null)).thenReturn(true);
 
-        UserAlreadyExistsException exception = assertThrows(UserAlreadyExistsException.class, () -> {
-            userService.registerUser(request);
-        });
+        UserAlreadyExistsException exception = assertThrows(
+                UserAlreadyExistsException.class,
+                () -> userService.registerUser(request)
+        );
         assertEquals("Email is already in use!", exception.getMessage());
 
         verify(userRepository).existsByUsername("testuser", null);
@@ -144,9 +145,10 @@ class UserServiceImplTest {
     @Test
     @DisplayName("Register User but Registration request in NULL throws IllegalArgumentException")
     void registerUser_nullRequest_throwsException() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            userService.registerUser(null);
-        });
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.registerUser(null)
+        );
         assertEquals("Registration request cannot be null", exception.getMessage());
 
         verify(userRepository, never()).existsByUsername(anyString(), anyLong());
@@ -210,9 +212,10 @@ class UserServiceImplTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-            userService.updateUser(userId, request);
-        });
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> userService.updateUser(userId, request)
+        );
         assertEquals("User not found", exception.getMessage());
 
         verify(userRepository).findById(userId);
@@ -236,9 +239,10 @@ class UserServiceImplTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.existsByEmail("new@example.com", userId)).thenReturn(true);
 
-        UserAlreadyExistsException exception = assertThrows(UserAlreadyExistsException.class, () -> {
-            userService.updateUser(userId, request);
-        });
+        UserAlreadyExistsException exception = assertThrows(
+                UserAlreadyExistsException.class,
+                () -> userService.updateUser(userId, request)
+        );
 
         assertEquals("Email is already in use!", exception.getMessage());
         verify(userRepository).findById(userId);
@@ -248,11 +252,24 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update User but userId is NULL throws updateUser_nullUserId_throwsIllegalArgumentException")
+    void updateUser_nullUserId_throwsException() {
+        UpdateRequest request = new UpdateRequest();
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.updateUser(null, request)
+        );
+        assertEquals("User ID cannot be null", exception.getMessage());
+        verify(userRepository, never()).findById(any());
+    }
+
+    @Test
     @DisplayName("Update User but Update request in NULL throws IllegalArgumentException")
     void updateUser_nullRequest_throwsException() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            userService.updateUser(1L, null);
-        });
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.updateUser(1L, null)
+        );
         assertEquals("Update request cannot be null", exception.getMessage());
 
         verify(userRepository, never()).findById(anyLong());
@@ -306,9 +323,10 @@ class UserServiceImplTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(request.getOldPassword(), user.getPassword())).thenReturn(false);
 
-        CannotProceedException exception = assertThrows(CannotProceedException.class, () -> {
-            userService.changePassword(userId, request);
-        });
+        CannotProceedException exception = assertThrows(
+                CannotProceedException.class,
+                () -> userService.changePassword(userId, request)
+        );
         assertEquals("Old password is incorrect", exception.getMessage());
 
         verify(userRepository).findById(userId);
@@ -319,11 +337,24 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("Change Password but userId is NULL throws IllegalArgumentException")
+    void changePassword_nullUserId_throwsException() {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.changePassword(null, request)
+        );
+        assertEquals("User ID cannot be null", exception.getMessage());
+        verify(userRepository, never()).findById(any());
+    }
+
+    @Test
     @DisplayName("Change Password but Change Password request in NULL throws IllegalArgumentException")
     void changePassword_nullRequest_throwsException() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            userService.changePassword(1L, null);
-        });
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.changePassword(1L, null)
+        );
         assertEquals("Change Password request cannot be null", exception.getMessage());
 
         verify(userRepository, never()).findById(anyLong());

@@ -1,11 +1,25 @@
 package todo.list.todo_list.service.impl;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -14,21 +28,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -146,9 +145,10 @@ class TaskServiceImplTest {
             when(userService.getUserByUsername("testuser")).thenReturn(user);
             when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(false);
 
-            ResourceConflictException exception = assertThrows(ResourceConflictException.class, () -> {
-                taskService.createTask(request);
-            });
+            ResourceConflictException exception = assertThrows(
+                    ResourceConflictException.class,
+                    () -> taskService.createTask(request)
+            );
 
             assertEquals("Title must be unique for the user", exception.getMessage());
 
@@ -180,9 +180,10 @@ class TaskServiceImplTest {
             when(userService.getUserByUsername("testuser")).thenReturn(user);
             when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
 
-            DuplicateCategoryException exception = assertThrows(DuplicateCategoryException.class, () -> {
-                taskService.createTask(request);
-            });
+            DuplicateCategoryException exception = assertThrows(
+                    DuplicateCategoryException.class,
+                    () -> taskService.createTask(request)
+            );
 
             assertEquals("A task cannot have duplicate categories.", exception.getMessage());
 
@@ -221,9 +222,10 @@ class TaskServiceImplTest {
 
             when(taskRepository.findById(request.getParentId())).thenReturn(Optional.empty());
 
-            ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-                taskService.createTask(request);
-            });
+            ResourceNotFoundException exception = assertThrows(
+                    ResourceNotFoundException.class,
+                    () -> taskService.createTask(request)
+            );
 
             assertEquals("Parent Task not found with ID: " + request.getParentId(), exception.getMessage());
 
@@ -271,9 +273,10 @@ class TaskServiceImplTest {
             when(taskMapper.fromTaskRequest(request)).thenReturn(task);
             when(taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
 
-            AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> {
-                taskService.createTask(request);
-            });
+            AccessDeniedException exception = assertThrows(
+                    AccessDeniedException.class,
+                    () -> taskService.createTask(request)
+            );
 
             assertEquals("Parent task must belong to the authenticated user.", exception.getMessage());
 
@@ -324,9 +327,10 @@ class TaskServiceImplTest {
             when(taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
             when(taskRepository.save(task)).thenReturn(null);
 
-            IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
-                taskService.createTask(request);
-            });
+            IllegalStateException exception = assertThrows(
+                    IllegalStateException.class,
+                    () -> taskService.createTask(request)
+            );
 
             assertEquals("Failed to save task", exception.getMessage());
 
@@ -342,9 +346,10 @@ class TaskServiceImplTest {
     @Test
     @DisplayName("Create Task but Task request in NULL throws IllegalArgumentException")
     void createTask_nullRequest_throwsException() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            taskService.createTask(null);
-        });
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> taskService.createTask(null)
+        );
         assertEquals("Task request cannot be null", exception.getMessage());
 
         verify(userService, never()).getUserByUsername(anyString());
@@ -428,9 +433,10 @@ class TaskServiceImplTest {
         when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
         when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(false);
 
-        ResourceConflictException exception = assertThrows(ResourceConflictException.class, () -> {
-            taskService.updateTask(taskId, request);
-        });
+        ResourceConflictException exception = assertThrows(
+                ResourceConflictException.class,
+                () -> taskService.updateTask(taskId, request)
+        );
 
         assertEquals("Title must be unique for the user.", exception.getMessage());
 
@@ -463,9 +469,10 @@ class TaskServiceImplTest {
         TaskServiceImpl taskServiceSpy = spy(taskService);
         when(taskServiceSpy.hasDuplicateCategories(request.getCategoryNames())).thenReturn(true);
 
-        DuplicateCategoryException exception = assertThrows(DuplicateCategoryException.class, () -> {
-            taskServiceSpy.updateTask(taskId, request);
-        });
+        DuplicateCategoryException exception = assertThrows(
+                DuplicateCategoryException.class,
+                () -> taskServiceSpy.updateTask(taskId, request)
+        );
 
         assertEquals("A task cannot have duplicate categories.", exception.getMessage());
 
@@ -506,9 +513,10 @@ class TaskServiceImplTest {
         when(taskServiceSpy.hasDuplicateCategories(request.getCategoryNames())).thenReturn(false);
         when(taskRepository.findByParentTaskId(taskId)).thenReturn(childTasks);
 
-        CannotProceedException exception = assertThrows(CannotProceedException.class, () -> {
-            taskServiceSpy.updateTask(taskId, request);
-        });
+        CannotProceedException exception = assertThrows(
+                CannotProceedException.class,
+                () -> taskServiceSpy.updateTask(taskId, request)
+        );
 
         assertEquals("Cannot proceed with task " + taskId + " while child tasks are not completed.", exception.getMessage());
 
@@ -549,9 +557,10 @@ class TaskServiceImplTest {
 
             when(taskRepository.findById(request.getParentId())).thenReturn(Optional.empty());
 
-            ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-                taskService.updateTask(taskId, request);
-            });
+            ResourceNotFoundException exception = assertThrows(
+                    ResourceNotFoundException.class,
+                    () -> taskService.updateTask(taskId, request)
+            );
 
             assertEquals("Parent Task not found with ID: " + request.getParentId(), exception.getMessage());
 
@@ -604,9 +613,10 @@ class TaskServiceImplTest {
 
             when(taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
 
-            AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> {
-                taskService.updateTask(taskId, request);
-            });
+            AccessDeniedException exception = assertThrows(
+                    AccessDeniedException.class,
+                    () -> taskService.updateTask(taskId, request)
+            );
 
             assertEquals("Parent task must belong to the authenticated user.", exception.getMessage());
 
@@ -662,9 +672,10 @@ class TaskServiceImplTest {
             when(taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
             when(taskRepository.save(existedTask)).thenReturn(null);
 
-            IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
-                taskService.updateTask(taskId, request);
-            });
+            IllegalStateException exception = assertThrows(
+                    IllegalStateException.class,
+                    () -> taskService.updateTask(taskId, request)
+            );
 
             assertEquals("Failed to save task with ID: " + taskId, exception.getMessage());
 
@@ -679,11 +690,23 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task but taskId is NULL throws IllegalArgumentException")
+    void updateTask_nullTaskId_throwsException() {
+        TaskRequest request = new TaskRequest();
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            taskService.updateTask(null, request);
+        });
+        assertEquals("Task ID cannot be null", exception.getMessage());
+        verify(taskRepository, never()).findById(any());
+    }
+
+    @Test
     @DisplayName("Update Task but Task request in NULL throws IllegalArgumentException")
     void updateTask_nullRequest_throwsException() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            taskService.updateTask(1L, null);
-        });
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> taskService.updateTask(1L, null)
+        );
         assertEquals("Task request cannot be null", exception.getMessage());
 
         verify(taskRepository, never()).save(any());
@@ -769,9 +792,10 @@ class TaskServiceImplTest {
 
         when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
 
-        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-            taskService.updateTaskStatus(taskId, request);
-        });
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> taskService.updateTaskStatus(taskId, request)
+        );
 
         assertEquals("Task not found with ID: " + taskId, exception.getMessage());
 
@@ -797,9 +821,10 @@ class TaskServiceImplTest {
         doThrow(new CannotProceedException("Cannot proceed with task " + taskId + " while child tasks are not completed."))
                 .when(taskServiceSpy).validateChildTaskCompletion(taskId);
 
-        CannotProceedException exception = assertThrows(CannotProceedException.class, () -> {
-            taskServiceSpy.updateTaskStatus(taskId, request);
-        });
+        CannotProceedException exception = assertThrows(
+                CannotProceedException.class,
+                () -> taskServiceSpy.updateTaskStatus(taskId, request)
+        );
 
         assertEquals("Cannot proceed with task " + taskId + " while child tasks are not completed.", exception.getMessage());
 
@@ -810,11 +835,24 @@ class TaskServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update Task Status but taskId is NULL throws IllegalArgumentException")
+    void updateTaskStatus_nullTaskId_throwsException() {
+        TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> taskService.updateTaskStatus(null, request)
+        );
+        assertEquals("Task ID cannot be null", exception.getMessage());
+        verify(taskRepository, never()).findById(any());
+    }
+
+    @Test
     @DisplayName("Update Task Status but Task Status Update request in NULL throws IllegalArgumentException")
     void updateTaskStatus_nullRequest_throwsException() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            taskService.updateTaskStatus(1L, null);
-        });
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> taskService.updateTaskStatus(1L, null)
+        );
         assertEquals("Task Status Update request cannot be null", exception.getMessage());
 
         verify(taskRepository, never()).findById(anyLong());
@@ -897,9 +935,10 @@ class TaskServiceImplTest {
 
         when(taskRepository.findByParentTaskId(taskId)).thenReturn(childTasks);
 
-        CannotProceedException exception = assertThrows(CannotProceedException.class, () -> {
-            taskService.deleteTask(taskId);
-        });
+        CannotProceedException exception = assertThrows(
+                CannotProceedException.class,
+                () -> taskService.deleteTask(taskId)
+        );
 
         assertEquals("Cannot proceed with task " + taskId + " while child tasks are not completed.", exception.getMessage());
 
@@ -918,14 +957,26 @@ class TaskServiceImplTest {
 
         when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
 
-        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-            taskService.deleteTask(taskId);
-        });
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> taskService.deleteTask(taskId)
+        );
 
         assertEquals("Task not found with ID: " + taskId, exception.getMessage());
 
         verify(taskRepository).findById(taskId);
         verify(taskRepository, never()).findByParentTaskId(taskId);
         verify(taskRepository, never()).delete(any(Task.class));
+    }
+
+    @Test
+    @DisplayName("Delete Task but taskId is NULL throws IllegalArgumentException")
+    void deleteTask_nullTaskId_throwsException() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> taskService.deleteTask(null)
+        );
+        assertEquals("Task ID cannot be null", exception.getMessage());
+        verify(taskRepository, never()).findById(any());
     }
 }

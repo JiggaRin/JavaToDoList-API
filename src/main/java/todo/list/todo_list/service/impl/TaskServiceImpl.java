@@ -87,6 +87,10 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskDTO getTask(Long taskId) {
+        if (taskId == null) {
+            throw new IllegalArgumentException("Task ID cannot be null");
+        }
+
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
@@ -95,9 +99,14 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskDTO updateTaskStatus(Long taskId, TaskStatusUpdateRequest request) {
+        if (taskId == null) {
+            throw new IllegalArgumentException("Task ID cannot be null");
+        }
+
         if (request == null) {
             throw new IllegalArgumentException("Task Status Update request cannot be null");
         }
+
         Task existedTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
@@ -112,9 +121,14 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskDTO updateTask(Long taskId, TaskRequest request) {
+        if (taskId == null) {
+            throw new IllegalArgumentException("Task ID cannot be null");
+        }
+
         if (request == null) {
             throw new IllegalArgumentException("Task request cannot be null");
         }
+
         Task existedTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
@@ -159,24 +173,36 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public void deleteTask(Long taskId) {
-        Task existindTask = taskRepository.findById(taskId)
+        if (taskId == null) {
+            throw new IllegalArgumentException("Task ID cannot be null");
+        }
+
+        Task existingTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
         List<Task> childTasks = taskRepository.findByParentTaskId(taskId);
 
         if(!childTasks.isEmpty()) {
-            validateChildTaskCompletion(existindTask.getId());
+            validateChildTaskCompletion(existingTask.getId());
         }
 
         for (Task childTask : childTasks) {
             taskRepository.delete(childTask);
         }
 
-        taskRepository.delete(existindTask);
+        taskRepository.delete(existingTask);
     }
 
     @Override
     public Page<TaskDTO> getAllTasks(Long userId, String search, int page, int size, String sortBy, String direction) {
+        if (sortBy == null) {
+            throw new IllegalArgumentException("Sort by field cannot be null");
+        }
+
+        if (direction == null) {
+            throw new IllegalArgumentException("Sort direction cannot be null");
+        }
+
         Page<Task> tasks = getTasksAccordingAdditionalParams(userId, search, page, size, sortBy, direction);
 
         return tasks.map(taskMapper::toTaskDTO);
@@ -184,6 +210,9 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public List<TaskDTO> getTasksByUser(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
         User user = userService.getUserById(userId);
         List<Task> tasks = taskRepository.findByOwner(user);
 
@@ -194,6 +223,14 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public boolean isOwner(Long taskId, String username) {
+        if (taskId == null) {
+            throw new IllegalArgumentException("Task ID cannot be null");
+        }
+
+        if (username == null) {
+            throw new IllegalArgumentException("Username cannot be null");
+        }
+
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
@@ -201,6 +238,10 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private Set<Category> fetchOrCreateCategories(List<String> categoryNames) {
+        if (categoryNames == null) {
+            return new HashSet<>();
+        }
+
         return categoryNames.stream()
                 .map(name -> categoryRepository.findByName(name)
                 .orElseGet(() -> categoryRepository.save(new Category(name))))
@@ -208,6 +249,10 @@ public class TaskServiceImpl implements TaskService {
     }
 
     boolean hasDuplicateCategories(List<String> categoryNames) {
+        if (categoryNames == null) {
+            return false;
+        }
+        
         Set<String> uniqueCategories = new HashSet<>(categoryNames);
         return uniqueCategories.size() < categoryNames.size();
     }

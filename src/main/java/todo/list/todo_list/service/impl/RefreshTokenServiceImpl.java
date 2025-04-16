@@ -30,6 +30,10 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     public String generateNewAccessToken(String refreshToken) {
+        if (refreshToken == null) {
+            throw new IllegalArgumentException("Refresh token cannot be null");
+        }
+        
         Optional<RefreshToken> storedRefreshToken = refreshTokenRepository.findByRefreshToken(refreshToken);
 
         if (storedRefreshToken.isEmpty() || storedRefreshToken.get().getExpiration().isBefore(Instant.now())) {
@@ -46,6 +50,9 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     public RefreshToken createRefreshToken(String username) {
+        if (username == null) {
+            throw new IllegalArgumentException("Username cannot be null");
+        }
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUsername(username);
         refreshToken.setRefreshToken(jwtUtil.generateRefreshToken(username));
@@ -57,6 +64,9 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Override
     @Transactional
     public void deleteByUsername(String username) {
+        if (username == null) {
+            throw new IllegalArgumentException("Username cannot be null");
+        }
         refreshTokenRepository.deleteByUsername(username);
     }
 }
