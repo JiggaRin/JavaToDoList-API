@@ -33,19 +33,18 @@ public class AuthController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    //TODO: check validation
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest authRequest) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest authRequest) {
         return ResponseEntity.ok(authService.authenticate(authRequest));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@RequestBody AuthResponse refreshRequest) {
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody AuthResponse refreshRequest) {
         return ResponseEntity.ok(authService.refreshToken(refreshRequest.getRefreshToken()));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestBody AuthResponse refreshRequest) {
+    public ResponseEntity<String> logout(@Valid @RequestBody AuthResponse refreshRequest) {
         authService.logout(refreshRequest.getRefreshToken());
         return ResponseEntity.ok("Logged out successfully");
     }
