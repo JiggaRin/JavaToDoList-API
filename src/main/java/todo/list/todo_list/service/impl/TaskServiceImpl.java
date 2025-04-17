@@ -98,28 +98,6 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public TaskDTO updateTaskStatus(Long taskId, TaskStatusUpdateRequest request) {
-        if (taskId == null) {
-            throw new IllegalArgumentException("Task ID cannot be null");
-        }
-
-        if (request == null) {
-            throw new IllegalArgumentException("Task Status Update request cannot be null");
-        }
-
-        Task existedTask = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
-
-        if (request.getStatus() == Status.DONE) {
-            validateChildTaskCompletion(taskId);
-        }
-
-        existedTask.setStatus(request.getStatus());
-
-        return taskMapper.toTaskDTO(taskRepository.save(existedTask));
-    }
-
-    @Override
     public TaskDTO updateTask(Long taskId, TaskRequest request) {
         if (taskId == null) {
             throw new IllegalArgumentException("Task ID cannot be null");
@@ -172,6 +150,28 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public TaskDTO updateTaskStatus(Long taskId, TaskStatusUpdateRequest request) {
+        if (taskId == null) {
+            throw new IllegalArgumentException("Task ID cannot be null");
+        }
+
+        if (request == null) {
+            throw new IllegalArgumentException("Task Status Update request cannot be null");
+        }
+
+        Task existedTask = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
+
+        if (request.getStatus() == Status.DONE) {
+            validateChildTaskCompletion(taskId);
+        }
+
+        existedTask.setStatus(request.getStatus());
+
+        return taskMapper.toTaskDTO(taskRepository.save(existedTask));
+    }
+
+    @Override
     public void deleteTask(Long taskId) {
         if (taskId == null) {
             throw new IllegalArgumentException("Task ID cannot be null");
@@ -182,7 +182,7 @@ public class TaskServiceImpl implements TaskService {
 
         List<Task> childTasks = taskRepository.findByParentTaskId(taskId);
 
-        if(!childTasks.isEmpty()) {
+        if (!childTasks.isEmpty()) {
             validateChildTaskCompletion(existingTask.getId());
         }
 
@@ -252,7 +252,7 @@ public class TaskServiceImpl implements TaskService {
         if (categoryNames == null) {
             return false;
         }
-        
+
         Set<String> uniqueCategories = new HashSet<>(categoryNames);
         return uniqueCategories.size() < categoryNames.size();
     }

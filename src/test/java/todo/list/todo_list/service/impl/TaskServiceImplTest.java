@@ -68,6 +68,7 @@ class TaskServiceImplTest {
     @InjectMocks
     private TaskServiceImpl taskService;
 
+    
     @Test
     @DisplayName("Create Task with valid data returns TaskDTO")
     void createTask_successfulCreation() {
@@ -359,6 +360,19 @@ class TaskServiceImplTest {
         verify(taskMapper, never()).toTaskDTO(any());
     }
 
+    @Test
+    @DisplayName("Get Task by ID but taskId is NULL throws IllegalArgumentException")
+    void getTask_nullTaskId_throwsEsception() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> taskService.getTask(null)
+        );
+
+        assertEquals("Task ID cannot be null", exception.getMessage());
+
+        verify(taskRepository, never()).findById(anyLong());
+    }
+    
     @Test
     @DisplayName("Update Task with valid data returns TaskDTO")
     void updateTask_successfulUpdate() {
@@ -978,5 +992,29 @@ class TaskServiceImplTest {
         );
         assertEquals("Task ID cannot be null", exception.getMessage());
         verify(taskRepository, never()).findById(any());
+    }
+
+    @Test
+    @DisplayName("Get All Tasks but Sort by is NULL throws IllegalArgumentException")
+    void getAllTasks_nullSortBy_throwsException() {
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> taskService.getAllTasks(1L, "search", 0, 10, null, "asc")
+        );
+        assertEquals("Sort by field cannot be null", exception.getMessage());
+        verify(taskRepository, never()).findParentTasks(any(), any(), any());
+        verify(taskMapper, never()).toTaskDTO(any());
+    }
+
+    @Test
+    @DisplayName("Get All Tasks by Direction is NULL throws IllegalArgumentException")
+    void getAllTasks_nullDirection_throwsException() {
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> taskService.getAllTasks(1L, "search", 0, 10, "title", null)
+        );
+        assertEquals("Sort direction cannot be null", exception.getMessage());
+        verify(taskRepository, never()).findParentTasks(any(), any(), any());
+        verify(taskMapper, never()).toTaskDTO(any());
     }
 }

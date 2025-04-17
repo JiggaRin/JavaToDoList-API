@@ -101,6 +101,20 @@ class CategoryServiceImplTest {
     }
 
     @Test
+    @DisplayName("Get Category by ID but categoryId is NULL throws IllegalArgumentException")
+    void getCategory_nullCategoryId_throwsEsception() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> categoryService.getCategory(null)
+        );
+
+        assertEquals("Category ID cannot be null", exception.getMessage());
+
+        verify(categoryRepository, never()).findById(anyLong());
+        verify(categoryMapper, never()).toCategoryDTO(any());
+    }
+    
+    @Test
     @DisplayName("Update Category with valid data returns CategoryDTO")
     void updateCategory_successfulUpdate() {
         Long categoryId = 1L;
@@ -224,6 +238,17 @@ class CategoryServiceImplTest {
     }
 
     @Test
+    @DisplayName("Delete Category but categoryId is NULL throws IllegalArgumentException")
+    void deleteCategory_nullCategoryId_throwsException() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> categoryService.deleteCategory(null)
+        );
+        assertEquals("Category ID cannot be null", exception.getMessage());
+        verify(categoryRepository, never()).findById(any());
+    }
+    
+    @Test
     @DisplayName("Delete Category with Category ID which is not found throws ResourceNotFoundException")
     void deleteCategory_categoryNotFound_throwsException() {
         Long categoryId = 1L;
@@ -260,16 +285,5 @@ class CategoryServiceImplTest {
         verify(categoryRepository).findById(category.getId());
         verify(categoryRepository).isCategoryInUse(category.getId());
         verify(categoryRepository, never()).delete(any(Category.class));
-    }
-
-    @Test
-    @DisplayName("Delete Category but categoryId is NULL throws IllegalArgumentException")
-    void deleteCategory_nullCategoryId_throwsException() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> categoryService.deleteCategory(null)
-        );
-        assertEquals("Category ID cannot be null", exception.getMessage());
-        verify(categoryRepository, never()).findById(any());
     }
 }

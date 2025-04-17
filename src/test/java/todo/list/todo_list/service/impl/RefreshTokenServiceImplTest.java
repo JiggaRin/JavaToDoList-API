@@ -185,4 +185,17 @@ class RefreshTokenServiceImplTest {
         verify(jwtUtil, never()).generateRefreshToken(anyString());
         verify(refreshTokenRepository, never()).save(any());
     }
+
+    @Test
+    @DisplayName("Delete Refresh Token by Username but Username is NULL throws IllegalArgumentException")
+    void deleteByUsername_nullUsername_throwsExcepton() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> refreshTokenService.deleteByUsername(null)
+        );
+
+        assertEquals("Username cannot be null", exception.getMessage());
+
+        verify(refreshTokenRepository, never()).findByUsername(anyString());
+    }
 }

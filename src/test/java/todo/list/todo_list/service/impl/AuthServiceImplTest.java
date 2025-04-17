@@ -144,45 +144,6 @@ class AuthServiceImplTest {
     }
 
     @Test
-    @DisplayName("Logout with valid refresh token deletes token by username")
-    void logout_deletesRefreshTokenByUsername() {
-        String refreshToken = "valid-refresh-token";
-        String username = "testuser";
-
-        when(jwtUtil.validateToken(refreshToken)).thenReturn(true);
-        when(jwtUtil.extractUsername(refreshToken)).thenReturn(username);
-
-        doNothing().when(refreshTokenService).deleteByUsername(username);
-
-        authService.logout(refreshToken);
-
-        InOrder inOrder = inOrder(jwtUtil, refreshTokenService);
-        inOrder.verify(jwtUtil).validateToken(refreshToken);
-        inOrder.verify(jwtUtil).extractUsername(refreshToken);
-        inOrder.verify(refreshTokenService).deleteByUsername(username);
-
-        verify(jwtUtil).extractUsername(refreshToken);
-        verify(refreshTokenService).deleteByUsername(username);
-    }
-
-    @Test
-    @DisplayName("Logout with invalid refresh token throws IllegalArgumentException")
-    void logout_invalidToken_throwsException() {
-        String refreshToken = "invalid-refresh-token";
-
-        when(jwtUtil.validateToken(refreshToken)).thenReturn(false);
-
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> authService.logout(refreshToken)
-        );
-        assertEquals("Invalid refresh token", exception.getMessage());
-        verify(jwtUtil).validateToken(refreshToken);
-        verify(jwtUtil, never()).extractUsername(refreshToken);
-        verify(refreshTokenService, never()).deleteByUsername(anyString());
-    }
-
-    @Test
     @DisplayName("Refresh token with valid token returns new access token")
     void refreshToken_successfulRefreshing() {
         String refreshToken = "valid-refresh-token";
@@ -260,5 +221,44 @@ class AuthServiceImplTest {
         verify(jwtUtil).extractUsername(refreshToken);
         verify(userService).getUserByUsername(username);
         verify(jwtUtil, never()).generateAccessToken(anyString(), List.of(anyString()));
+    }
+
+    @Test
+    @DisplayName("Logout with valid refresh token deletes token by username")
+    void logout_deletesRefreshTokenByUsername() {
+        String refreshToken = "valid-refresh-token";
+        String username = "testuser";
+
+        when(jwtUtil.validateToken(refreshToken)).thenReturn(true);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn(username);
+
+        doNothing().when(refreshTokenService).deleteByUsername(username);
+
+        authService.logout(refreshToken);
+
+        InOrder inOrder = inOrder(jwtUtil, refreshTokenService);
+        inOrder.verify(jwtUtil).validateToken(refreshToken);
+        inOrder.verify(jwtUtil).extractUsername(refreshToken);
+        inOrder.verify(refreshTokenService).deleteByUsername(username);
+
+        verify(jwtUtil).extractUsername(refreshToken);
+        verify(refreshTokenService).deleteByUsername(username);
+    }
+
+    @Test
+    @DisplayName("Logout with invalid refresh token throws IllegalArgumentException")
+    void logout_invalidToken_throwsException() {
+        String refreshToken = "invalid-refresh-token";
+
+        when(jwtUtil.validateToken(refreshToken)).thenReturn(false);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> authService.logout(refreshToken)
+        );
+        assertEquals("Invalid refresh token", exception.getMessage());
+        verify(jwtUtil).validateToken(refreshToken);
+        verify(jwtUtil, never()).extractUsername(refreshToken);
+        verify(refreshTokenService, never()).deleteByUsername(anyString());
     }
 }

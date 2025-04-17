@@ -363,4 +363,30 @@ class UserServiceImplTest {
         verify(userRepository, never()).save(any());
         verify(refreshTokenRepository, never()).deleteByUsername(anyString());
     }
+
+    @Test
+    @DisplayName("Get User by ID but userId is NULL throws IllegalArgumentException")
+    void getUserById_nullUserId_throwsEsception() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.getUserById(null)
+        );
+
+        assertEquals("User ID cannot be null", exception.getMessage());
+
+        verify(userRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    @DisplayName("Get User by Username but Username is NULL throws IllegalArgumentException")
+    void getUserByUsername_nullUsername_throwsExcepton() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.getUserByUsername(null)
+        );
+
+        assertEquals("Username cannot be null", exception.getMessage());
+
+        verify(userRepository, never()).findByUsername(anyString());
+    }
 }
