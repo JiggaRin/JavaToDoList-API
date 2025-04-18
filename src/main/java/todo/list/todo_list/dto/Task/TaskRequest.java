@@ -2,7 +2,7 @@ package todo.list.todo_list.dto.Task;
 
 import java.util.List;
 
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -13,7 +13,7 @@ public class TaskRequest {
 
     private Long parentId;
 
-    @NotEmpty(message = "Title cannot be empty")
+    @NotBlank(message = "Title cannot be empty")
     @Size(min = 1, max = 255, message = "Title must be between 1 and 255 characters")
     private String title;
 
@@ -24,7 +24,7 @@ public class TaskRequest {
     @EnumValidator(enumClass = Status.class, message = "Invalid status value. Status must be one of: TODO, IN_PROGRESS, DONE")
     private Status status;
 
-    @NotEmpty(message = "Category names cannot be empty")
+    @NotBlank(message = "Category names cannot be empty")
     @Size(min = 1, message = "At least one category name must be provided")
     private List<@Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "Each category name must contain only letters, numbers, and underscores") String> categoryNames;
 
