@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
 import todo.list.todo_list.dto.Category.CategoryDTO;
 import todo.list.todo_list.dto.Category.CategoryRequest;
 import todo.list.todo_list.service.CategoryService;
@@ -40,7 +41,7 @@ public class CategoryController {
 
     @PostMapping("/")
     @PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
-    public ResponseEntity<CategoryDTO> createCategory(@RequestBody CategoryRequest request) {
+    public ResponseEntity<CategoryDTO> createCategory(@Valid @RequestBody CategoryRequest request) {
         CategoryDTO category = categoryService.createCategory(request);
 
         return new ResponseEntity<>(category, HttpStatus.CREATED);
@@ -54,10 +55,9 @@ public class CategoryController {
         return new ResponseEntity<>(category, HttpStatus.OK);
     }
 
-    //TODO: check validation
     @PutMapping("/{categoryId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
-    public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long categoryId, @RequestBody CategoryRequest request) {
+    public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long categoryId, @Valid @RequestBody CategoryRequest request) {
         CategoryDTO existedCategory = categoryService.updateCategory(categoryId, request);
 
         return new ResponseEntity<>(existedCategory, HttpStatus.OK);
