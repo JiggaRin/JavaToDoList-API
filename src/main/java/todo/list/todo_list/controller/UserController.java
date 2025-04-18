@@ -29,7 +29,7 @@ public class UserController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('MODERATOR')")
     public ResponseEntity<UserDTO> updateUser(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody @Valid UpdateRequest request) {
+            @Valid @RequestBody UpdateRequest request) {
         UserDTO user = userService.updateUser(userDetails.getId(), request);
         return ResponseEntity.ok(user);
     }
@@ -38,7 +38,7 @@ public class UserController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('MODERATOR')")
     public ResponseEntity<String> changePassword(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody @Valid ChangePasswordRequest request) {
+            @Valid @RequestBody ChangePasswordRequest request) {
         userService.changePassword(userDetails.getId(), request);
         SecurityContextHolder.clearContext();
         return ResponseEntity.ok("Password updated successfully. Please log in again.");
