@@ -1,4 +1,4 @@
-package todo.list.todo_list.repository;
+package todo.list.todo_list.integration.repository;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -18,6 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import todo.list.todo_list.entity.User;
 import todo.list.todo_list.model.Role;
+import todo.list.todo_list.repository.UserRepository;
 
 @DataJpaTest
 @EntityScan("todo.list.todo_list.entity")
@@ -27,7 +28,7 @@ class UserRepositoryIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
-    private User createUser(String username, String email) {
+    private User setupUser(String username, String email) {
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
@@ -41,7 +42,7 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Save User with valid data persists and returns User")
     void saveUser_validData_successfulSave() {
-        User user = createUser("testuser", "test@example.com");
+        User user = setupUser("testuser", "test@example.com");
         user.setFirstName("Test");
         user.setLastName("User");
 
@@ -59,7 +60,7 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Find User by ID when user exists returns User")
     void findById_userExists_returnsUser() {
-        User user = createUser("testuser", "test@example.com");
+        User user = setupUser("testuser", "test@example.com");
         User savedUser = userRepository.save(user);
 
         Optional<User> result = userRepository.findById(savedUser.getId());
@@ -72,7 +73,7 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Find User by username when user exists returns User")
     void findByUsername_ShouldReturnUser_WhenUserExists() {
-        User user = createUser("testuser", "test@example.com");
+        User user = setupUser("testuser", "test@example.com");
         userRepository.save(user);
 
         Optional<User> result = userRepository.findByUsername("testuser");
@@ -86,7 +87,7 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Exists by username when username exists returns true")
     void existsByUsername_ShouldReturnTrue_WhenUsernameExists() {
-        User user = createUser("uniqueuser", "unique@example.com");
+        User user = setupUser("uniqueuser", "unique@example.com");
         userRepository.save(user);
 
         boolean exists = userRepository.existsByUsername("uniqueuser", null);
@@ -105,7 +106,7 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Exists by email when email exists returns true")
     void existsByEmail_ShouldReturnTrue_WhenEmailExists() {
-        User user = createUser("emailuser", "email@example.com");
+        User user = setupUser("emailuser", "email@example.com");
         userRepository.save(user);
 
         boolean exists = userRepository.existsByEmail("email@example.com", null);
@@ -124,7 +125,7 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Save user with null email throws DataIntegrityViolationException")
     void saveUser_WithNullEmail_ShouldThrowException() {
-        User user = createUser("testuser", null);
+        User user = setupUser("testuser", null);
 
         try {
             userRepository.saveAndFlush(user);
@@ -137,10 +138,10 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Save user with duplicate username throws DataIntegrityViolationException")
     void saveUser_DuplicateUsername_ShouldThrowException() {
-        User firstUser = createUser("testuser", "testuser1@example.com");
+        User firstUser = setupUser("testuser", "testuser1@example.com");
         userRepository.saveAndFlush(firstUser);
 
-        User duplicate = createUser("testuser", "testuser2@example.com");
+        User duplicate = setupUser("testuser", "testuser2@example.com");
 
         try {
             userRepository.saveAndFlush(duplicate);
