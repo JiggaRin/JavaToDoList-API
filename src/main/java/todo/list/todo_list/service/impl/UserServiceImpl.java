@@ -54,7 +54,6 @@ public class UserServiceImpl implements UserService {
         return new RegistrationResponse("User registered successfully", user.getUsername(), user.getEmail());
     }
 
-    // TODO Check validation here and in Controller
     @Override
     public UserDTO updateUser(Long userId, @Valid UpdateRequest request) {
         if (userId == null) {
