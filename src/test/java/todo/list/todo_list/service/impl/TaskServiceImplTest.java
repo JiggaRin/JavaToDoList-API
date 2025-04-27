@@ -54,6 +54,8 @@ import todo.list.todo_list.service.UserService;
 @ExtendWith(MockitoExtension.class)
 class TaskServiceImplTest {
 
+    private final String username = "testuser";
+
     @Mock
     private CategoryRepository categoryRepository;
 
@@ -69,50 +71,79 @@ class TaskServiceImplTest {
     @InjectMocks
     private TaskServiceImpl taskService;
 
-    
+    private TaskRequest setupTaskRequest(String title, List<String> categoryNames, Long parentTaskId) {
+        TaskRequest request = new TaskRequest();
+        request.setTitle(title);
+        request.setCategoryNames(categoryNames);
+        request.setParentId(parentTaskId);
+
+        return request;
+    }
+
+    private User setupUser(Long userId, String username) {
+        User user = new User();
+        user.setId(userId);
+        user.setUsername(username);
+
+        return user;
+    }
+
+    private Task setupTask(User owner, Long taskId, Status status) {
+        Task task = new Task();
+        task.setOwner(owner);
+        task.setId(taskId);
+        task.setStatus(status);
+
+        return task;
+    }
+
+    private TaskDTO setupTaskDTO(Long taskId, Status status, String title) {
+        TaskDTO dto = new TaskDTO();
+        dto.setId(taskId);
+        dto.setStatus(status);
+        dto.setTitle(title);
+
+        return dto;
+    }
+
     @Test
     @DisplayName("Create Task with valid data returns TaskDTO")
     void createTask_successfulCreation() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My New Task");
-        request.setDescription("A simple task");
+        String taskTitle = "My New Task";
+        String taskDescription = "A simple task";
+        String categoryName1 = "Work";
+        String categoryName2 = "Urgent";
+
+        TaskRequest request = this.setupTaskRequest(taskTitle, Arrays.asList(categoryName1, categoryName2), null);
+        request.setDescription(taskDescription);
         request.setStatus(Status.TODO);
-        request.setCategoryNames(Arrays.asList("Work", "Urgent"));
-        request.setParentId(null);
 
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
+        User user = this.setupUser(1L, this.username);
 
-        Category work = new Category("Work");
+        Category work = new Category(categoryName1);
         work.setId(1L);
-        Category urgent = new Category("Urgent");
+        Category urgent = new Category(categoryName2);
         urgent.setId(2L);
         Set<Category> categories = new HashSet<>(Arrays.asList(work, urgent));
 
-        Task task = new Task();
-        task.setId(1L);
-        task.setOwner(user);
+        Task task = this.setupTask(user, 1L, null);
         task.setCategories(categories);
 
-        TaskDTO dto = new TaskDTO();
-        dto.setId(1L);
-        dto.setTitle("My New Task");
-        dto.setDescription("A simple task");
-        dto.setStatus(Status.TODO);
-        dto.setCategories(new HashSet<>(Arrays.asList("Work", "Urgent")));
+        TaskDTO dto = this.setupTaskDTO(1L, Status.TODO, taskTitle);
+        dto.setDescription(taskDescription);
+        dto.setCategories(new HashSet<>(Arrays.asList(categoryName1, categoryName2)));
 
         try (MockedStatic<SecurityContextHolder> mockedStatic = Mockito.mockStatic(SecurityContextHolder.class)) {
             SecurityContext securityContext = mock(SecurityContext.class);
             Authentication authentication = mock(Authentication.class);
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.getName()).thenReturn("testuser");
+            when(authentication.getName()).thenReturn(this.username);
 
-            when(userService.getUserByUsername("testuser")).thenReturn(user);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
             when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
-            when(categoryRepository.findByName("Work")).thenReturn(Optional.of(work));
-            when(categoryRepository.findByName("Urgent")).thenReturn(Optional.of(urgent));
+            when(categoryRepository.findByName(categoryName1)).thenReturn(Optional.of(work));
+            when(categoryRepository.findByName(categoryName2)).thenReturn(Optional.of(urgent));
             when(taskMapper.fromTaskRequest(request)).thenReturn(task);
             when(taskRepository.save(task)).thenReturn(task);
             when(taskMapper.toTaskDTO(task)).thenReturn(dto);
@@ -131,20 +162,17 @@ class TaskServiceImplTest {
     @Test
     @DisplayName("Create Task with title which is NOT unique throws ResourceConflictException")
     void createTask_titleIsNotUnique_throwsException() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My New Task");
+        TaskRequest request = this.setupTaskRequest("My New Task", null, null);
 
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
+        User user = this.setupUser(1L, this.username);
 
         try (MockedStatic<SecurityContextHolder> mockedStatic = Mockito.mockStatic(SecurityContextHolder.class)) {
             SecurityContext securityContext = mock(SecurityContext.class);
             Authentication authentication = mock(Authentication.class);
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.getName()).thenReturn("testuser");
-            when(userService.getUserByUsername("testuser")).thenReturn(user);
+            when(authentication.getName()).thenReturn(this.username);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
             when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(false);
 
             ResourceConflictException exception = assertThrows(
@@ -154,7 +182,7 @@ class TaskServiceImplTest {
 
             assertEquals("Title must be unique for the user", exception.getMessage());
 
-            verify(userService).getUserByUsername("testuser");
+            verify(userService).getUserByUsername(this.username);
             verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
             verify(taskMapper, never()).fromTaskRequest(request);
             verify(taskRepository, never()).save(any(Task.class));
@@ -165,21 +193,17 @@ class TaskServiceImplTest {
     @Test
     @DisplayName("Create Task with duplicate Categories throws DuplicateCategoryException")
     void createTask_duplicateCategories_throwsException() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My New Task");
-        request.setCategoryNames(Arrays.asList("Cat1", "Cat1"));
+        TaskRequest request = this.setupTaskRequest("My New Task", Arrays.asList("Cat1", "Cat1"), null);
 
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
+        User user = this.setupUser(1L, this.username);
 
         try (MockedStatic<SecurityContextHolder> mockedStatic = Mockito.mockStatic(SecurityContextHolder.class)) {
             SecurityContext securityContext = mock(SecurityContext.class);
             Authentication authentication = mock(Authentication.class);
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.getName()).thenReturn("testuser");
-            when(userService.getUserByUsername("testuser")).thenReturn(user);
+            when(authentication.getName()).thenReturn(this.username);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
             when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
 
             DuplicateCategoryException exception = assertThrows(
@@ -189,7 +213,7 @@ class TaskServiceImplTest {
 
             assertEquals("A task cannot have duplicate categories.", exception.getMessage());
 
-            verify(userService).getUserByUsername("testuser");
+            verify(userService).getUserByUsername(this.username);
             verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
             verify(taskMapper, never()).fromTaskRequest(request);
             verify(taskRepository, never()).save(any(Task.class));
@@ -200,25 +224,19 @@ class TaskServiceImplTest {
     @Test
     @DisplayName("Create Task with parent task ID which is NOT found throws ResourceNotFoundException")
     void createTask_parentTaskNotFound_throwsException() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My New Task");
-        request.setParentId(2L);
-        request.setCategoryNames(Arrays.asList("Cat1", "Cat2"));
+        TaskRequest request = this.setupTaskRequest("My New Task", Arrays.asList("Cat1", "Cat2"), 2L);
 
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
+        User user = this.setupUser(1L, this.username);
 
-        Task task = new Task();
-        task.setOwner(user);
+        Task task = this.setupTask(user, null, null);
 
         try (MockedStatic<SecurityContextHolder> mockedStatic = Mockito.mockStatic(SecurityContextHolder.class)) {
             SecurityContext securityContext = mock(SecurityContext.class);
             Authentication authentication = mock(Authentication.class);
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.getName()).thenReturn("testuser");
-            when(userService.getUserByUsername("testuser")).thenReturn(user);
+            when(authentication.getName()).thenReturn(this.username);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
             when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
             when(taskMapper.fromTaskRequest(request)).thenReturn(task);
 
@@ -231,7 +249,7 @@ class TaskServiceImplTest {
 
             assertEquals("Parent Task not found with ID: " + request.getParentId(), exception.getMessage());
 
-            verify(userService).getUserByUsername("testuser");
+            verify(userService).getUserByUsername(this.username);
             verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
             verify(taskMapper).fromTaskRequest(request);
             verify(taskRepository).findById(request.getParentId());
@@ -245,32 +263,23 @@ class TaskServiceImplTest {
     @Test
     @DisplayName("Create Task with corect parent task ID but the task is NOT owned by current user throws AccessDeniedException")
     void createTask_parentTaskNotOwnedByUser_throwsException() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My New Task");
-        request.setParentId(2L);
-        request.setCategoryNames(Arrays.asList("Cat1", "Cat2"));
+        TaskRequest request = this.setupTaskRequest("My New Task", Arrays.asList("Cat1", "Cat2"), 2L);
 
-        User currentUser = new User();
-        currentUser.setId(1L);
-        currentUser.setUsername("testuser");
+        User currentUser = this.setupUser(1L, this.username);
 
-        User otherUser = new User();
-        otherUser.setId(3L);
-        otherUser.setUsername("otheruser");
+        User otherUser = this.setupUser(3L, "otheruser");
 
-        Task parentTask = new Task();
-        parentTask.setOwner(otherUser);
+        Task parentTask = this.setupTask(otherUser, null, null);
 
-        Task task = new Task();
-        task.setOwner(currentUser);
+        Task task = this.setupTask(currentUser, null, null);
 
         try (MockedStatic<SecurityContextHolder> mockedStatic = Mockito.mockStatic(SecurityContextHolder.class)) {
             SecurityContext securityContext = mock(SecurityContext.class);
             Authentication authentication = mock(Authentication.class);
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.getName()).thenReturn("testuser");
-            when(userService.getUserByUsername("testuser")).thenReturn(currentUser);
+            when(authentication.getName()).thenReturn(this.username);
+            when(userService.getUserByUsername(this.username)).thenReturn(currentUser);
             when(taskRepository.isTitleUnique(request.getTitle(), currentUser.getId(), null)).thenReturn(true);
             when(taskMapper.fromTaskRequest(request)).thenReturn(task);
             when(taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
@@ -282,7 +291,7 @@ class TaskServiceImplTest {
 
             assertEquals("Parent task must belong to the authenticated user.", exception.getMessage());
 
-            verify(userService).getUserByUsername("testuser");
+            verify(userService).getUserByUsername(this.username);
             verify(taskRepository).isTitleUnique(request.getTitle(), currentUser.getId(), null);
             verify(taskMapper).fromTaskRequest(request);
             verify(taskRepository).findById(request.getParentId());
@@ -294,24 +303,19 @@ class TaskServiceImplTest {
     @Test
     @DisplayName("Create Task with valid data but failed to save it throws IllegalStateException")
     void createTask_failedToSaveTask_throwsException() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My New Task");
-        request.setCategoryNames(Arrays.asList("Work", "Urgent"));
-        request.setParentId(1L);
+        String categoryName1 = "Work";
+        String categoryName2 = "Urgent";
+        TaskRequest request = this.setupTaskRequest("My New Task", Arrays.asList(categoryName1, categoryName2), 1L);
 
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
+        User user = this.setupUser(1L, this.username);
 
-        Task task = new Task();
-        task.setOwner(user);
+        Task task = this.setupTask(user, null, null);
 
-        Task parentTask = new Task();
-        parentTask.setOwner(user);
+        Task parentTask = this.setupTask(user, null, null);
 
-        Category work = new Category("Work");
+        Category work = new Category(categoryName1);
         work.setId(1L);
-        Category urgent = new Category("Urgent");
+        Category urgent = new Category(categoryName2);
         urgent.setId(2L);
 
         try (MockedStatic<SecurityContextHolder> mockedStatic = Mockito.mockStatic(SecurityContextHolder.class)) {
@@ -319,12 +323,12 @@ class TaskServiceImplTest {
             Authentication authentication = mock(Authentication.class);
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.getName()).thenReturn("testuser");
+            when(authentication.getName()).thenReturn(this.username);
 
-            when(userService.getUserByUsername("testuser")).thenReturn(user);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
             when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
-            when(categoryRepository.findByName("Work")).thenReturn(Optional.of(work));
-            when(categoryRepository.findByName("Urgent")).thenReturn(Optional.of(urgent));
+            when(categoryRepository.findByName(categoryName1)).thenReturn(Optional.of(work));
+            when(categoryRepository.findByName(categoryName2)).thenReturn(Optional.of(urgent));
             when(taskMapper.fromTaskRequest(request)).thenReturn(task);
             when(taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
             when(taskRepository.save(task)).thenReturn(null);
@@ -336,7 +340,7 @@ class TaskServiceImplTest {
 
             assertEquals("Failed to save task", exception.getMessage());
 
-            verify(userService).getUserByUsername("testuser");
+            verify(userService).getUserByUsername(this.username);
             verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
             verify(taskMapper).fromTaskRequest(request);
             verify(taskRepository).findById(request.getParentId());
@@ -373,50 +377,44 @@ class TaskServiceImplTest {
 
         verify(taskRepository, never()).findById(anyLong());
     }
-    
+
     @Test
     @DisplayName("Update Task with valid data returns TaskDTO")
     void updateTask_successfulUpdate() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My Updated Task");
+        String categoryName1 = "Work";
+        String categoryName2 = "Urgent";
+        String taskTitle = "My Updated Task";
+        TaskRequest request = this.setupTaskRequest(taskTitle, Arrays.asList(categoryName1, categoryName2), null);
         request.setDescription("A simple task");
         request.setStatus(Status.TODO);
-        request.setCategoryNames(Arrays.asList("Work", "Urgent"));
-        request.setParentId(null);
 
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
+        User user = this.setupUser(1L, this.username);
 
-        Category work = new Category("Work");
+        Category work = new Category(categoryName1);
         work.setId(1L);
-        Category urgent = new Category("Urgent");
+        Category urgent = new Category(categoryName2);
         urgent.setId(2L);
         Set<Category> categories = new HashSet<>(Arrays.asList(work, urgent));
 
         Long taskId = 1L;
-        Task existedTask = new Task();
-        existedTask.setId(1L);
-        existedTask.setOwner(user);
+        Task existedTask = this.setupTask(user, 1L, null);
         existedTask.setCategories(categories);
 
-        TaskDTO dto = new TaskDTO();
-        dto.setId(1L);
-        dto.setTitle("My Updated Task");
-        dto.setCategories(new HashSet<>(Arrays.asList("Work", "Urgent")));
+        TaskDTO dto = this.setupTaskDTO(1L, null, taskTitle);
+        dto.setCategories(new HashSet<>(Arrays.asList(categoryName1, categoryName2)));
 
         try (MockedStatic<SecurityContextHolder> mockedStatic = Mockito.mockStatic(SecurityContextHolder.class)) {
             SecurityContext securityContext = mock(SecurityContext.class);
             Authentication authentication = mock(Authentication.class);
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.getName()).thenReturn("testuser");
+            when(authentication.getName()).thenReturn(this.username);
 
-            when(userService.getUserByUsername("testuser")).thenReturn(user);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
             when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
             when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
-            when(categoryRepository.findByName("Work")).thenReturn(Optional.of(work));
-            when(categoryRepository.findByName("Urgent")).thenReturn(Optional.of(urgent));
+            when(categoryRepository.findByName(categoryName1)).thenReturn(Optional.of(work));
+            when(categoryRepository.findByName(categoryName2)).thenReturn(Optional.of(urgent));
             doNothing().when(taskMapper).updateTaskFromRequest(request, existedTask);
             when(taskRepository.save(existedTask)).thenReturn(existedTask);
             when(taskMapper.toTaskDTO(existedTask)).thenReturn(dto);
@@ -433,17 +431,12 @@ class TaskServiceImplTest {
     @Test
     @DisplayName("Update Task with title which is NOT unique throws ResourceConflictException")
     void updateTask_titleIsNotUnique_throwsException() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My Updated Task");
+        TaskRequest request = this.setupTaskRequest("My Updated Task", null, null);
 
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
+        User user = this.setupUser(1L, this.username);
 
         Long taskId = 1L;
-        Task existedTask = new Task();
-        existedTask.setId(taskId);
-        existedTask.setOwner(user);
+        Task existedTask = this.setupTask(user, taskId, null);
 
         when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
         when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(false);
@@ -465,18 +458,12 @@ class TaskServiceImplTest {
     @Test
     @DisplayName("Update Task with duplicate Categories throws DuplicateCategoryException")
     void updateTask_duplicateCategories_throwsException() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My Updated Task");
-        request.setCategoryNames(Arrays.asList("Cat1", "Cat1"));
+        TaskRequest request = this.setupTaskRequest("My Updated Task", Arrays.asList("Cat1", "Cat1"), null);
 
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
+        User user = this.setupUser(1L, this.username);
 
         Long taskId = 1L;
-        Task existedTask = new Task();
-        existedTask.setId(taskId);
-        existedTask.setOwner(user);
+        Task existedTask = this.setupTask(user, taskId, null);
 
         when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
         when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
@@ -502,23 +489,15 @@ class TaskServiceImplTest {
     @Test
     @DisplayName("Update Task with valid data but child tasks in NOT completed throws CannotProceedException")
     void updateTask_childTaskNotCompleted_throwsException() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My Updated Task");
+        TaskRequest request = this.setupTaskRequest("My Updated Task", Arrays.asList("Cat1", "Cat2"), null);
         request.setStatus(Status.DONE);
-        request.setCategoryNames(Arrays.asList("Cat1", "Cat2"));
 
-        User user = new User();
-        user.setId(1L);
+        User user = this.setupUser(1L, null);
 
         Long taskId = 1L;
-        Task existedTask = new Task();
-        existedTask.setId(taskId);
-        existedTask.setOwner(user);
+        Task existedTask = this.setupTask(user, taskId, null);
 
-        Task childTask = new Task();
-        childTask.setId(2L);
-        childTask.setOwner(user);
-        childTask.setStatus(Status.TODO);
+        Task childTask = this.setupTask(user, 2L, Status.TODO);
 
         List<Task> childTasks = Arrays.asList(childTask);
         TaskServiceImpl taskServiceSpy = spy(taskService);
@@ -544,27 +523,20 @@ class TaskServiceImplTest {
     @Test
     @DisplayName("Update Task with parent task ID which is NOT found throws ResourceNotFoundException")
     void updateTask_parentTaskNotFound_throwsException() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My Updated Task");
-        request.setParentId(2L);
-        request.setCategoryNames(Arrays.asList("Cat1", "Cat2"));
+        TaskRequest request = this.setupTaskRequest("My Updated Task", Arrays.asList("Cat1", "Cat2"), 2L);
 
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
+        User user = this.setupUser(1L, this.username);
 
         Long taskId = 1L;
-        Task existedTask = new Task();
-        existedTask.setId(taskId);
-        existedTask.setOwner(user);
+        Task existedTask = this.setupTask(user, taskId, null);
 
         try (MockedStatic<SecurityContextHolder> mockedStatic = Mockito.mockStatic(SecurityContextHolder.class)) {
             SecurityContext securityContext = mock(SecurityContext.class);
             Authentication authentication = mock(Authentication.class);
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.getName()).thenReturn("testuser");
-            when(userService.getUserByUsername("testuser")).thenReturn(user);
+            when(authentication.getName()).thenReturn(this.username);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
 
             when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
             when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
@@ -579,7 +551,7 @@ class TaskServiceImplTest {
 
             assertEquals("Parent Task not found with ID: " + request.getParentId(), exception.getMessage());
 
-            verify(userService).getUserByUsername("testuser");
+            verify(userService).getUserByUsername(this.username);
             verify(taskRepository).findById(taskId);
             verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
             verify(taskMapper).updateTaskFromRequest(request, existedTask);
@@ -592,35 +564,24 @@ class TaskServiceImplTest {
     @Test
     @DisplayName("Update Task with corect parent task ID but the task is NOT owned by current user throws AccessDeniedException")
     void updateTask_parentTaskNotOwnedByUser_throwsException() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My Updated Task");
-        request.setParentId(2L);
-        request.setCategoryNames(Arrays.asList("Cat1", "Cat2"));
+        TaskRequest request = this.setupTaskRequest("My Updated Task", Arrays.asList("Cat1", "Cat2"), 2L);
 
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
+        User user = this.setupUser(1L, this.username);
 
-        User otherUser = new User();
-        otherUser.setId(3L);
-        otherUser.setUsername("otheruser");
+        User otherUser = this.setupUser(3L, "otheruser");
 
         Long taskId = 1L;
-        Task existedTask = new Task();
-        existedTask.setId(taskId);
-        existedTask.setOwner(user);
+        Task existedTask = this.setupTask(user, taskId, null);
 
-        Task parentTask = new Task();
-        parentTask.setId(2L);
-        parentTask.setOwner(otherUser);
+        Task parentTask = this.setupTask(otherUser, 2L, null);
 
         try (MockedStatic<SecurityContextHolder> mockedStatic = Mockito.mockStatic(SecurityContextHolder.class)) {
             SecurityContext securityContext = mock(SecurityContext.class);
             Authentication authentication = mock(Authentication.class);
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.getName()).thenReturn("testuser");
-            when(userService.getUserByUsername("testuser")).thenReturn(user);
+            when(authentication.getName()).thenReturn(this.username);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
 
             when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
             when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
@@ -635,7 +596,7 @@ class TaskServiceImplTest {
 
             assertEquals("Parent task must belong to the authenticated user.", exception.getMessage());
 
-            verify(userService).getUserByUsername("testuser");
+            verify(userService).getUserByUsername(this.username);
             verify(taskRepository).findById(taskId);
             verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
             verify(taskMapper).updateTaskFromRequest(request, existedTask);
@@ -648,27 +609,21 @@ class TaskServiceImplTest {
     @Test
     @DisplayName("Update Task with valid data but failed to save it throws IllegalStateException")
     void updateTask_failedToSaveTask_throwsException() {
-        TaskRequest request = new TaskRequest();
-        request.setTitle("My Updated Task");
-        request.setCategoryNames(Arrays.asList("Work", "Urgent"));
-        request.setParentId(2L);
-
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
-
         Long taskId = 1L;
-        Task existedTask = new Task();
-        existedTask.setId(taskId);
-        existedTask.setOwner(user);
+        String categoryName1 = "Work";
+        String categoryName2 = "Urgent";
 
-        Task parentTask = new Task();
-        parentTask.setId(2L);
-        parentTask.setOwner(user);
+        TaskRequest request = this.setupTaskRequest("My Updated Task", Arrays.asList(categoryName1, categoryName2), 2L);
 
-        Category work = new Category("Work");
+        User user = this.setupUser(1L, this.username);
+
+        Task existedTask = this.setupTask(user, taskId, null);
+
+        Task parentTask = this.setupTask(user, 2L, null);
+
+        Category work = new Category(categoryName1);
         work.setId(1L);
-        Category urgent = new Category("Urgent");
+        Category urgent = new Category(categoryName2);
         urgent.setId(2L);
 
         try (MockedStatic<SecurityContextHolder> mockedStatic = Mockito.mockStatic(SecurityContextHolder.class)) {
@@ -676,13 +631,13 @@ class TaskServiceImplTest {
             Authentication authentication = mock(Authentication.class);
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.getName()).thenReturn("testuser");
+            when(authentication.getName()).thenReturn(this.username);
 
-            when(userService.getUserByUsername("testuser")).thenReturn(user);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
             when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
             when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
-            when(categoryRepository.findByName("Work")).thenReturn(Optional.of(work));
-            when(categoryRepository.findByName("Urgent")).thenReturn(Optional.of(urgent));
+            when(categoryRepository.findByName(categoryName1)).thenReturn(Optional.of(work));
+            when(categoryRepository.findByName(categoryName2)).thenReturn(Optional.of(urgent));
             doNothing().when(taskMapper).updateTaskFromRequest(request, existedTask);
             when(taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
             when(taskRepository.save(existedTask)).thenReturn(null);
@@ -694,7 +649,7 @@ class TaskServiceImplTest {
 
             assertEquals("Failed to save task with ID: " + taskId, exception.getMessage());
 
-            verify(userService).getUserByUsername("testuser");
+            verify(userService).getUserByUsername(this.username);
             verify(taskRepository).findById(taskId);
             verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
             verify(taskMapper).updateTaskFromRequest(request, existedTask);
@@ -731,20 +686,15 @@ class TaskServiceImplTest {
     @DisplayName("Update Task Status with valid data(Status = DONE) returns TaskDTO")
     void updateTaskStatus_successfulUpdateStatusToDone() {
         Long taskId = 1L;
+
         TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
         request.setStatus(Status.DONE);
 
-        Task task = new Task();
-        task.setId(taskId);
-        task.setStatus(Status.TODO);
+        Task task = this.setupTask(null, taskId, Status.TODO);
 
-        Task updatedTask = new Task();
-        updatedTask.setId(taskId);
-        updatedTask.setStatus(Status.DONE);
+        Task updatedTask = this.setupTask(null, taskId, Status.DONE);
 
-        TaskDTO dto = new TaskDTO();
-        dto.setId(taskId);
-        dto.setStatus(Status.DONE);
+        TaskDTO dto = this.setupTaskDTO(taskId, Status.DONE, null);
 
         when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
         when(taskRepository.findByParentTaskId(taskId)).thenReturn(Collections.emptyList());
@@ -765,20 +715,15 @@ class TaskServiceImplTest {
     @DisplayName("Update Task Status with valid data(Status = IN_PROGRESS) returns TaskDTO")
     void updateTaskStatus_successfulUpdateStatusToAnotherStatuses() {
         Long taskId = 1L;
+
         TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
         request.setStatus(Status.IN_PROGRESS);
 
-        Task task = new Task();
-        task.setId(taskId);
-        task.setStatus(Status.TODO);
+        Task task = this.setupTask(null, taskId, Status.TODO);
 
-        Task updatedTask = new Task();
-        updatedTask.setId(taskId);
-        updatedTask.setStatus(Status.IN_PROGRESS);
+        Task updatedTask = this.setupTask(null, taskId, Status.IN_PROGRESS);
 
-        TaskDTO dto = new TaskDTO();
-        dto.setId(taskId);
-        dto.setStatus(Status.IN_PROGRESS);
+        TaskDTO dto = this.setupTaskDTO(taskId, Status.IN_PROGRESS, null);
 
         when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
         when(taskRepository.save(task)).thenReturn(updatedTask);
@@ -798,12 +743,11 @@ class TaskServiceImplTest {
     @DisplayName("Update Task Status with Task ID which is NOT found throws ResourceNotFoundException")
     void updateTaskStatus_taskNotFound_throwsException() {
         Long taskId = 1L;
+
         TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
         request.setStatus(Status.DONE);
 
-        Task task = new Task();
-        task.setId(taskId);
-        task.setStatus(Status.TODO);
+        this.setupTask(null, 2L, Status.TODO);
 
         when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
 
@@ -823,12 +767,11 @@ class TaskServiceImplTest {
     @DisplayName("Update Task Status with valid data but child task(s) is NOT completed throws CannotProceedException")
     void updateTaskStatus_incompletedChildTasks_throwsException() {
         Long taskId = 1L;
+
         TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
         request.setStatus(Status.DONE);
 
-        Task task = new Task();
-        task.setId(taskId);
-        task.setStatus(Status.TODO);
+        Task task = this.setupTask(null, taskId, Status.TODO);
 
         when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
 
@@ -879,17 +822,13 @@ class TaskServiceImplTest {
     @DisplayName("Delete Task with child tasks returns void")
     void deleteTask_successfulDelete() {
         Long taskId = 1L;
-        Task parentTask = new Task();
-        parentTask.setId(taskId);
+
+        Task parentTask = this.setupTask(null, taskId, null);
         parentTask.setTitle("Parent Title");
 
-        Task child1 = new Task();
-        child1.setId(2L);
-        child1.setStatus(Status.DONE);
+        Task child1 = this.setupTask(null, 2L, Status.DONE);
 
-        Task child2 = new Task();
-        child2.setId(3L);
-        child2.setStatus(Status.IN_PROGRESS);
+        Task child2 = this.setupTask(null, 3L, Status.IN_PROGRESS);
 
         List<Task> childTasks = Arrays.asList(child1, child2);
 
@@ -911,8 +850,8 @@ class TaskServiceImplTest {
     @DisplayName("Delete Task without child task(s) returns void")
     void deleteTask_noChildTasks_successfulDelete() {
         Long taskId = 1L;
-        Task parentTask = new Task();
-        parentTask.setId(taskId);
+
+        Task parentTask = this.setupTask(null, taskId, null);
         parentTask.setTitle("Parent task");
 
         when(taskRepository.findById(taskId)).thenReturn(Optional.of(parentTask));
@@ -930,18 +869,14 @@ class TaskServiceImplTest {
     @DisplayName("Delete Task but child task(s) is NOT completed throws CannotProceedException")
     void deleteTask_childTaskNotCompleted_throwsExceptions() {
         Long taskId = 1L;
-        Task parentTask = new Task();
-        parentTask.setId(taskId);
+
+        Task parentTask = this.setupTask(null, taskId, null);
         parentTask.setTitle("Parent Title");
 
-        Task child1 = new Task();
-        child1.setId(2L);
-        child1.setStatus(Status.TODO);
+        Task child1 = this.setupTask(null, 2L, Status.TODO);
         child1.setParentTask(parentTask);
 
-        Task child2 = new Task();
-        child2.setId(3L);
-        child2.setStatus(Status.IN_PROGRESS);
+        Task child2 = this.setupTask(null, 3L, Status.IN_PROGRESS);
         child2.setParentTask(parentTask);
 
         List<Task> childTasks = Arrays.asList(child1, child2);
@@ -966,8 +901,8 @@ class TaskServiceImplTest {
     @DisplayName("Delete Task with Task ID which is NOT found throws ResourceNotFoundException")
     void deleteTask_taskNotFound_throwsException() {
         Long taskId = 1L;
-        Task parenTask = new Task();
-        parenTask.setId(2L);
+
+        Task parenTask = this.setupTask(null, 2L, null);
         parenTask.setTitle("parent Task");
 
         when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
@@ -999,8 +934,8 @@ class TaskServiceImplTest {
     @DisplayName("Get All Tasks but Sort by is NULL throws IllegalArgumentException")
     void getAllTasks_nullSortBy_throwsException() {
         IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
-            () -> taskService.getAllTasks(1L, "search", 0, 10, null, "asc")
+                IllegalArgumentException.class,
+                () -> taskService.getAllTasks(1L, "search", 0, 10, null, "asc")
         );
         assertEquals("Sort by field cannot be null", exception.getMessage());
         verify(taskRepository, never()).findParentTasks(any(), any(), any());
@@ -1011,8 +946,8 @@ class TaskServiceImplTest {
     @DisplayName("Get All Tasks by Direction is NULL throws IllegalArgumentException")
     void getAllTasks_nullDirection_throwsException() {
         IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
-            () -> taskService.getAllTasks(1L, "search", 0, 10, "title", null)
+                IllegalArgumentException.class,
+                () -> taskService.getAllTasks(1L, "search", 0, 10, "title", null)
         );
         assertEquals("Sort direction cannot be null", exception.getMessage());
         verify(taskRepository, never()).findParentTasks(any(), any(), any());

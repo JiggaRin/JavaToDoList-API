@@ -43,16 +43,36 @@ class CategoryServiceImplTest {
     @InjectMocks
     private CategoryServiceImpl categoryService;
 
+    private CategoryRequest setupCategoryRequest(String categoryName) {
+        CategoryRequest request = new CategoryRequest();
+        request.setName(categoryName);
+
+        return request;
+    }
+
+    private CategoryDTO setupCategoryDTO(Long categoryId, String name) {
+        CategoryDTO dto = new CategoryDTO();
+        dto.setId(categoryId);
+        dto.setName(name);
+
+        return dto;
+    }
+
+    private Category setupCategory(Long categoryId, String name) {
+        Category category = new Category(name);
+        category.setId(categoryId);
+
+        return category;
+    }
+
     @Test
     @DisplayName("Create Category with valid data returns CategoryDTO")
     void createCategory_successfulCreation() {
-        CategoryRequest request = new CategoryRequest();
-        request.setName("Category Name");
-        Category savedCategory = new Category("Category Name");
-        savedCategory.setId(1L);
-        CategoryDTO dto = new CategoryDTO();
-        dto.setId(1L);
-        dto.setName("Category Name");
+        CategoryRequest request = this.setupCategoryRequest("Category Name");
+
+        Category savedCategory = this.setupCategory(1L, "Category Name");
+
+        CategoryDTO dto = this.setupCategoryDTO(1L, "Category Name");
 
         when(categoryRepository.isCategoryNameUnique(request.getName(), null)).thenReturn(true);
         when(categoryRepository.save(any(Category.class))).thenReturn(savedCategory);
@@ -71,8 +91,7 @@ class CategoryServiceImplTest {
     @Test
     @DisplayName("Create Category with name which is already exists throws ResourceConflictException")
     void createCategory_duplicateCategoryName_throwsException() {
-        CategoryRequest request = new CategoryRequest();
-        request.setName("Category Name");
+        CategoryRequest request = this.setupCategoryRequest("Category Name");
 
         when(categoryRepository.isCategoryNameUnique(request.getName(), null)).thenReturn(false);
 
@@ -114,21 +133,18 @@ class CategoryServiceImplTest {
         verify(categoryRepository, never()).findById(anyLong());
         verify(categoryMapper, never()).toCategoryDTO(any());
     }
-    
+
     @Test
     @DisplayName("Update Category with valid data returns CategoryDTO")
     void updateCategory_successfulUpdate() {
         Long categoryId = 1L;
-        CategoryRequest request = new CategoryRequest();
-        request.setName("New Category Name");
-        Category savedCategory = new Category("New Category Name");
-        savedCategory.setId(1L);
-        CategoryDTO dto = new CategoryDTO();
-        dto.setId(1L);
-        dto.setName("New Category Name");
+        CategoryRequest request = this.setupCategoryRequest("New Category Name");
 
-        Category category = new Category("Old Category Name");
-        category.setId(categoryId);
+        Category savedCategory = this.setupCategory(categoryId, "New Category Name");
+
+        CategoryDTO dto = this.setupCategoryDTO(categoryId, "New Category Name");
+
+        Category category = this.setupCategory(categoryId, "New Category Name");
 
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
         when(categoryRepository.isCategoryNameUnique(request.getName(), category.getId())).thenReturn(true);
@@ -150,8 +166,7 @@ class CategoryServiceImplTest {
     @DisplayName("Update Category with Category ID which is not found throws ResourceNotFoundException")
     void updateCategory_categoryNotFound_throwsException() {
         Long categoryId = 1L;
-        CategoryRequest request = new CategoryRequest();
-        request.setName("New Category Name");
+        CategoryRequest request = this.setupCategoryRequest("New Category Name");
 
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
 
@@ -171,10 +186,9 @@ class CategoryServiceImplTest {
     @DisplayName("Update Category with name which is already existed throws ResourceConflictException")
     void updateCategory_duplicateCategoryName_throwsException() {
         Long categoryId = 1L;
-        CategoryRequest request = new CategoryRequest();
-        request.setName("New Category Name");
-        Category category = new Category("Old Category Name");
-        category.setId(categoryId);
+        CategoryRequest request = this.setupCategoryRequest("New Category Name");
+
+        Category category = this.setupCategory(categoryId, "Old Category Name");
 
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
 
@@ -223,8 +237,7 @@ class CategoryServiceImplTest {
     @DisplayName("Delete Category with valid Category ID returns void")
     void deleteCategory_successfulDelete() {
         Long categoryId = 1L;
-        Category category = new Category("Old Category Name");
-        category.setId(categoryId);
+        Category category = this.setupCategory(categoryId, "Old Category Name");
 
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
         when(categoryRepository.isCategoryInUse(category.getId())).thenReturn(false);
@@ -248,7 +261,7 @@ class CategoryServiceImplTest {
         assertEquals("Category ID cannot be null", exception.getMessage());
         verify(categoryRepository, never()).findById(any());
     }
-    
+
     @Test
     @DisplayName("Delete Category with Category ID which is not found throws ResourceNotFoundException")
     void deleteCategory_categoryNotFound_throwsException() {
@@ -271,8 +284,7 @@ class CategoryServiceImplTest {
     @DisplayName("Delete Category with correct Category ID but category is in use throws CategoryInUseException")
     void deleteCategory_categoryInUse_throwsException() {
         Long categoryId = 1L;
-        Category category = new Category("Old Category Name");
-        category.setId(categoryId);
+        Category category = this.setupCategory(categoryId, "Old Category Name");
 
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
         when(categoryRepository.isCategoryInUse(category.getId())).thenReturn(true);

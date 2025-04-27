@@ -1,25 +1,26 @@
 package todo.list.todo_list.service.impl;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import todo.list.todo_list.entity.RefreshToken;
@@ -45,20 +46,32 @@ class RefreshTokenServiceImplTest {
     @InjectMocks
     private RefreshTokenServiceImpl refreshTokenService;
 
+    private RefreshToken setupRefreshToken(String refreshToken, String username, Instant expirationTime) {
+        RefreshToken token = new RefreshToken();
+        token.setRefreshToken(refreshToken);
+        token.setUsername(username);
+        token.setExpiration(expirationTime);
+
+        return token;
+    }
+
+    private User setupUser(String username, Role role) {
+        User user = new User();
+        user.setUsername(username);
+        user.setRole(role);
+
+        return user;
+    }
+
     @Test
     @DisplayName("Generate New Access Token with valid token returns Access Token")
     void generateNewAccessToken_successfulGeneration() {
         String refreshToken = "valid-token";
         String username = "testuser";
         Instant future = Instant.now().plusSeconds(3600);
-        RefreshToken storedToken = new RefreshToken();
-        storedToken.setRefreshToken(refreshToken);
-        storedToken.setUsername(username);
-        storedToken.setExpiration(future);
+        RefreshToken storedToken = this.setupRefreshToken(refreshToken, username, future);
 
-        User user = new User();
-        user.setUsername(username);
-        user.setRole(Role.USER);
+        User user = this.setupUser(username, Role.USER);
 
         when(refreshTokenRepository.findByRefreshToken(refreshToken)).thenReturn(Optional.of(storedToken));
         when(userService.getUserByUsername(username)).thenReturn(user);
@@ -92,10 +105,7 @@ class RefreshTokenServiceImplTest {
         String refreshToken = "valid-token";
         String username = "testuser";
         Instant past = Instant.now().minusSeconds(3600);
-        RefreshToken storedToken = new RefreshToken();
-        storedToken.setRefreshToken(refreshToken);
-        storedToken.setUsername(username);
-        storedToken.setExpiration(past);
+        RefreshToken storedToken = this.setupRefreshToken(refreshToken, username, past);
 
         when(refreshTokenRepository.findByRefreshToken(refreshToken)).thenReturn(Optional.of(storedToken));
         String result = refreshTokenService.generateNewAccessToken(refreshToken);
@@ -125,14 +135,9 @@ class RefreshTokenServiceImplTest {
         String refreshToken = "valid-token";
         String username = "testuser";
         Instant future = Instant.now().plusSeconds(3600);
-        RefreshToken storedToken = new RefreshToken();
-        storedToken.setRefreshToken(refreshToken);
-        storedToken.setUsername(username);
-        storedToken.setExpiration(future);
+        RefreshToken storedToken = this.setupRefreshToken(refreshToken, username, future);
 
-        User user = new User();
-        user.setUsername(username);
-        user.setRole(Role.USER);
+        this.setupUser(username, Role.USER);
 
         when(refreshTokenRepository.findByRefreshToken(refreshToken)).thenReturn(Optional.of(storedToken));
         when(userService.getUserByUsername(username)).thenThrow(new ResourceNotFoundException("User not found with username: " + username));

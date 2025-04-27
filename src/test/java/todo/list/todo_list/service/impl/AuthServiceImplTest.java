@@ -38,6 +38,8 @@ import todo.list.todo_list.service.UserService;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
 
+    private final String username = "testuser";
+
     @Mock
     private UserService userService;
 
@@ -53,43 +55,53 @@ class AuthServiceImplTest {
     @InjectMocks
     private AuthServiceImpl authService;
 
+    private AuthRequest setupAuthRequest(String username, String password) {
+        AuthRequest request = new AuthRequest();
+        request.setUsername(username);
+        request.setPassword(password);
+
+        return request;
+    }
+
+    private User setupUser(String username, String password) {
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password);
+        user.setRole(Role.USER);
+
+        return user;
+    }
+
     @Test
     @DisplayName("Authenticate with valid credentials returns tokens")
     void authenticate_successfulAuthentication() {
-        AuthRequest request = new AuthRequest();
-        request.setUsername("testuser");
-        request.setPassword("Password123!");
+        AuthRequest request = this.setupAuthRequest(this.username, "Password123!");
 
-        User user = new User();
-        user.setUsername("testuser");
-        user.setPassword("encodedPassword");
-        user.setRole(Role.USER);
+        User user = this.setupUser(this.username, "encodedPassword");
 
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setRefreshToken("refresh-token-value");
 
-        when(userService.getUserByUsername("testuser")).thenReturn(user);
+        when(userService.getUserByUsername(this.username)).thenReturn(user);
         when(passwordEncoder.matches("Password123!", "encodedPassword")).thenReturn(true);
-        when(jwtUtil.generateAccessToken("testuser", List.of("ROLE_USER"))).thenReturn("access-token-value");
-        when(refreshTokenService.createRefreshToken("testuser")).thenReturn(refreshToken);
+        when(jwtUtil.generateAccessToken(this.username, List.of("ROLE_USER"))).thenReturn("access-token-value");
+        when(refreshTokenService.createRefreshToken(this.username)).thenReturn(refreshToken);
 
         AuthResponse response = authService.authenticate(request);
 
         assertNotNull(response);
         assertEquals("access-token-value", response.getAccessToken());
         assertEquals("refresh-token-value", response.getRefreshToken());
-        verify(userService).getUserByUsername("testuser");
+        verify(userService).getUserByUsername(this.username);
         verify(passwordEncoder).matches("Password123!", "encodedPassword");
-        verify(jwtUtil).generateAccessToken("testuser", List.of("ROLE_USER"));
-        verify(refreshTokenService).createRefreshToken("testuser");
+        verify(jwtUtil).generateAccessToken(this.username, List.of("ROLE_USER"));
+        verify(refreshTokenService).createRefreshToken(this.username);
     }
 
     @Test
     @DisplayName("Authenticate with unknown user throws UsernameNotFoundException")
     void authenticate_userNotFound_throwsException() {
-        AuthRequest request = new AuthRequest();
-        request.setUsername("unknownuser");
-        request.setPassword("Password123!");
+        AuthRequest request = this.setupAuthRequest("unknownuser", "Password123!");
 
         when(userService.getUserByUsername("unknownuser"))
                 .thenThrow(new UsernameNotFoundException("User not found"));
@@ -107,15 +119,11 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("Authenticate with invalid password throws BadCredentialsException")
     void authenticate_invalidPassword_throwsException() {
-        AuthRequest request = new AuthRequest();
-        request.setUsername("testuser");
-        request.setPassword("WrongPassword");
+        AuthRequest request = this.setupAuthRequest(this.username, "WrongPassword");
 
-        User user = new User();
-        user.setUsername("testuser");
-        user.setPassword("encodedPassword");
+        User user = this.setupUser(this.username, "encodedPassword");
 
-        when(userService.getUserByUsername("testuser")).thenReturn(user);
+        when(userService.getUserByUsername(this.username)).thenReturn(user);
         when(passwordEncoder.matches("WrongPassword", "encodedPassword")).thenReturn(false);
 
         BadCredentialsException exception = assertThrows(
@@ -123,7 +131,7 @@ class AuthServiceImplTest {
                 () -> authService.authenticate(request)
         );
         assertEquals("Invalid username or password", exception.getMessage());
-        verify(userService).getUserByUsername("testuser");
+        verify(userService).getUserByUsername(this.username);
         verify(passwordEncoder).matches("WrongPassword", "encodedPassword");
         verify(jwtUtil, never()).generateAccessToken(anyString(), anyList());
         verify(refreshTokenService, never()).createRefreshToken(anyString());
@@ -152,14 +160,12 @@ class AuthServiceImplTest {
         token.setRefreshToken(refreshToken);
 
         when(jwtUtil.validateToken(refreshToken)).thenReturn(true);
-        when(jwtUtil.extractUsername(refreshToken)).thenReturn("testuser");
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn(this.username);
 
-        User user = new User();
-        user.setUsername("testuser");
-        user.setRole(Role.USER);
+        User user = this.setupUser(this.username, null);
 
-        when(userService.getUserByUsername("testuser")).thenReturn(user);
-        when(jwtUtil.generateAccessToken("testuser", List.of("ROLE_USER"))).thenReturn("new-access-token");
+        when(userService.getUserByUsername(this.username)).thenReturn(user);
+        when(jwtUtil.generateAccessToken(this.username, List.of("ROLE_USER"))).thenReturn("new-access-token");
 
         AuthResponse response = authService.refreshToken(refreshToken);
         assertNotNull(response);
@@ -201,26 +207,25 @@ class AuthServiceImplTest {
     @DisplayName("Refresh token with valid token but missing user throws ResourceNotFoundException")
     void refreshToken_userNotFound_throwsException() {
         String refreshToken = "valid-refresh-token";
-        String username = "testuser";
         RefreshToken token = new RefreshToken();
         token.setRefreshToken(refreshToken);
 
         when(jwtUtil.validateToken(refreshToken)).thenReturn(true);
-        when(jwtUtil.extractUsername(refreshToken)).thenReturn(username);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn(this.username);
 
-        when(userService.getUserByUsername("testuser"))
-                .thenThrow(new ResourceNotFoundException("User not found with username: " + username));
+        when(userService.getUserByUsername(this.username))
+                .thenThrow(new ResourceNotFoundException("User not found with username: " + this.username));
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> authService.refreshToken(refreshToken)
         );
 
-        assertEquals("User not found with username: " + username, exception.getMessage());
+        assertEquals("User not found with username: " + this.username, exception.getMessage());
 
         verify(jwtUtil).validateToken(refreshToken);
         verify(jwtUtil).extractUsername(refreshToken);
-        verify(userService).getUserByUsername(username);
+        verify(userService).getUserByUsername(this.username);
         verify(jwtUtil, never()).generateAccessToken(anyString(), List.of(anyString()));
     }
 
@@ -228,22 +233,21 @@ class AuthServiceImplTest {
     @DisplayName("Logout with valid refresh token deletes token by username")
     void logout_deletesRefreshTokenByUsername() {
         String refreshToken = "valid-refresh-token";
-        String username = "testuser";
 
         when(jwtUtil.validateToken(refreshToken)).thenReturn(true);
-        when(jwtUtil.extractUsername(refreshToken)).thenReturn(username);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn(this.username);
 
-        doNothing().when(refreshTokenService).deleteByUsername(username);
+        doNothing().when(refreshTokenService).deleteByUsername(this.username);
 
         authService.logout(refreshToken);
 
         InOrder inOrder = inOrder(jwtUtil, refreshTokenService);
         inOrder.verify(jwtUtil).validateToken(refreshToken);
         inOrder.verify(jwtUtil).extractUsername(refreshToken);
-        inOrder.verify(refreshTokenService).deleteByUsername(username);
+        inOrder.verify(refreshTokenService).deleteByUsername(this.username);
 
         verify(jwtUtil).extractUsername(refreshToken);
-        verify(refreshTokenService).deleteByUsername(username);
+        verify(refreshTokenService).deleteByUsername(this.username);
     }
 
     @Test

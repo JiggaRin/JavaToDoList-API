@@ -41,6 +41,8 @@ import todo.list.todo_list.repository.UserRepository;
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
 
+    private final String username = "testuser";
+
     @Mock
     private UserRepository userRepository;
 
@@ -56,30 +58,60 @@ class UserServiceImplTest {
     @InjectMocks
     private UserServiceImpl userService;
 
+    private RegistrationRequest setupRegistationRequest(String username, String email, String password) {
+        RegistrationRequest request = new RegistrationRequest();
+        request.setUsername(username);
+        request.setEmail(email);
+        request.setPassword(password);
+
+        return request;
+    }
+
+    private User setupUser(String username, String email, Role role) {
+        User user = new User();
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setRole(role);
+
+        return user;
+    }
+
+    private UpdateRequest setupUpdateRequest(String newEmail) {
+        UpdateRequest request = new UpdateRequest();
+        request.setEmail(newEmail);
+
+        return request;
+    }
+
+    private ChangePasswordRequest setupChangePasswordRequest(String oldPassword, String newPassword) {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setOldPassword(oldPassword);
+        request.setNewPassword(newPassword);
+
+        return request;
+    }
+
     @Test
     @DisplayName("Register User with valid data returns RegistrationResponse")
     void registerUser_successfulRegistration() {
-        RegistrationRequest request = new RegistrationRequest();
-        request.setUsername("testuser");
-        request.setEmail("test@example.com");
-        request.setPassword("Password123!");
+        String email = "test@example.com";
+        String password = "Password123!";
+        String encodedPassword = "encodedPassword";
+        RegistrationRequest request = this.setupRegistationRequest(this.username, email, password);
         request.setFirstName("Test");
         request.setLastName("User");
         request.setRole(Role.USER);
 
-        User user = new User();
-        user.setUsername("testuser");
-        user.setEmail("test@example.com");
+        User user = this.setupUser(this.username, email, Role.USER);
         user.setFirstName("Test");
-        user.setRole(Role.USER);
 
-        when(userRepository.existsByUsername("testuser", null)).thenReturn(false);
-        when(userRepository.existsByEmail("test@example.com", null)).thenReturn(false);
+        when(userRepository.existsByUsername(this.username, null)).thenReturn(false);
+        when(userRepository.existsByEmail(email, null)).thenReturn(false);
         when(userMapper.fromRegistrationRequest(request)).thenReturn(user);
-        when(passwordEncoder.encode("Password123!")).thenReturn("encodedPassword");
+        when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User savedUser = invocation.getArgument(0);
-            savedUser.setPassword("encodedPassword");
+            savedUser.setPassword(encodedPassword);
             return savedUser;
         });
 
@@ -87,32 +119,31 @@ class UserServiceImplTest {
 
         assertNotNull(response);
         assertEquals("User registered successfully", response.getMessage());
-        assertEquals("testuser", response.getUsername());
-        assertEquals("test@example.com", response.getEmail());
+        assertEquals(this.username, response.getUsername());
+        assertEquals(email, response.getEmail());
 
-        verify(userRepository).existsByUsername("testuser", null);
-        verify(userRepository).existsByEmail("test@example.com", null);
+        verify(userRepository).existsByUsername(this.username, null);
+        verify(userRepository).existsByEmail(email, null);
         verify(userMapper).fromRegistrationRequest(request);
-        verify(passwordEncoder).encode("Password123!");
+        verify(passwordEncoder).encode(password);
         verify(userRepository).save(user);
     }
 
     @Test
-    @DisplayName("Register User with Username which is already existed throws UserAlreadyExistsException")
+    @DisplayName("Register User with this.username which is already existed throws UserAlreadyExistsException")
     void registerUser_duplicateUsername_throwsException() {
-        RegistrationRequest request = new RegistrationRequest();
-        request.setUsername("testuser");
-        request.setEmail("test@example.com");
-        request.setPassword("Password123!");
+        String email = "test@example.com";
+        String password = "Password123!";
+        RegistrationRequest request = this.setupRegistationRequest(this.username, email, password);
 
-        when(userRepository.existsByUsername("testuser", null)).thenReturn(true);
+        when(userRepository.existsByUsername(this.username, null)).thenReturn(true);
 
         UserAlreadyExistsException exception = assertThrows(
                 UserAlreadyExistsException.class,
                 () -> userService.registerUser(request)
         );
         assertEquals("Username is already taken!", exception.getMessage());
-        verify(userRepository).existsByUsername("testuser", null);
+        verify(userRepository).existsByUsername(this.username, null);
         verify(userRepository, never()).existsByEmail(anyString(), any());
         verify(userMapper, never()).fromRegistrationRequest(any());
         verify(passwordEncoder, never()).encode(anyString());
@@ -122,13 +153,12 @@ class UserServiceImplTest {
     @Test
     @DisplayName("Register User with email which is already in use by another user throws UserAlreadyExistsException")
     void registerUser_duplicateEmail_throwsException() {
-        RegistrationRequest request = new RegistrationRequest();
-        request.setUsername("testuser");
-        request.setEmail("test@example.com");
-        request.setPassword("Password123!");
+        String email = "test@example.com";
+        String password = "Password123!";
+        RegistrationRequest request = this.setupRegistationRequest(this.username, email, password);
 
-        when(userRepository.existsByUsername("testuser", null)).thenReturn(false);
-        when(userRepository.existsByEmail("test@example.com", null)).thenReturn(true);
+        when(userRepository.existsByUsername(this.username, null)).thenReturn(false);
+        when(userRepository.existsByEmail(email, null)).thenReturn(true);
 
         UserAlreadyExistsException exception = assertThrows(
                 UserAlreadyExistsException.class,
@@ -136,8 +166,8 @@ class UserServiceImplTest {
         );
         assertEquals("Email is already in use!", exception.getMessage());
 
-        verify(userRepository).existsByUsername("testuser", null);
-        verify(userRepository).existsByEmail("test@example.com", null);
+        verify(userRepository).existsByUsername(this.username, null);
+        verify(userRepository).existsByEmail(email, null);
         verify(userMapper, never()).fromRegistrationRequest(any());
         verify(passwordEncoder, never()).encode(anyString());
         verify(userRepository, never()).save(any());
@@ -163,16 +193,13 @@ class UserServiceImplTest {
     @DisplayName("Update User with valid data returns UserDTO")
     void updateUser_successfulUpdate() {
         Long userId = 1L;
-        UpdateRequest request = new UpdateRequest();
-        request.setEmail("new@example.com");
+        String newEmail = "new@example.com";
+        UpdateRequest request = this.setupUpdateRequest(newEmail);
         request.setFirstName("NewFirst");
         request.setLastName("NewLast");
 
-        User user = new User();
+        User user = this.setupUser("testuser", "old@example.com", Role.USER);
         user.setId(userId);
-        user.setUsername("testuser");
-        user.setEmail("old@example.com");
-        user.setRole(Role.USER);
 
         doAnswer(invocation -> {
             User target = invocation.getArgument(1);
@@ -185,10 +212,10 @@ class UserServiceImplTest {
         UserDTO userDTO = new UserDTO();
         userDTO.setFirstName("NewFirst");
         userDTO.setLastName("NewLast");
-        userDTO.setEmail("new@example.com");
+        userDTO.setEmail(newEmail);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(userRepository.existsByEmail("new@example.com", userId)).thenReturn(false);
+        when(userRepository.existsByEmail(newEmail, userId)).thenReturn(false);
         when(userRepository.save(user)).thenReturn(user);
         when(userMapper.toUserDTO(user)).thenReturn(userDTO);
 
@@ -198,7 +225,7 @@ class UserServiceImplTest {
         assertSame(userDTO, response);
 
         verify(userRepository).findById(userId);
-        verify(userRepository).existsByEmail("new@example.com", userId);
+        verify(userRepository).existsByEmail(newEmail, userId);
         verify(userMapper).updateUserFromRequest(request, user);
         verify(userRepository).save(user);
         verify(userMapper).toUserDTO(user);
@@ -208,8 +235,7 @@ class UserServiceImplTest {
     @DisplayName("Update User with User ID which is not found throws ResourceNotFoundException")
     void updateUser_userNotFound_throwsException() {
         Long userId = 1L;
-        UpdateRequest request = new UpdateRequest();
-        request.setEmail("new@example.com");
+        UpdateRequest request = this.setupUpdateRequest("new@example.com");
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
@@ -229,16 +255,15 @@ class UserServiceImplTest {
     @DisplayName("Update User with email which is already in use by another user throws UserAlreadyExistsException")
     void updateUser_duplicateEmail_throwsException() {
         Long userId = 1L;
-        UpdateRequest request = new UpdateRequest();
-        request.setEmail("new@example.com");
+        String newEmail = "new@example.com";
+        UpdateRequest request = this.setupUpdateRequest(newEmail);
+        request.setEmail(newEmail);
 
-        User user = new User();
+        User user = this.setupUser("testuser", "old@example.com", null);
         user.setId(userId);
-        user.setUsername("testuser");
-        user.setEmail("old@example.com");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(userRepository.existsByEmail("new@example.com", userId)).thenReturn(true);
+        when(userRepository.existsByEmail(newEmail, userId)).thenReturn(true);
 
         UserAlreadyExistsException exception = assertThrows(
                 UserAlreadyExistsException.class,
@@ -247,13 +272,13 @@ class UserServiceImplTest {
 
         assertEquals("Email is already in use!", exception.getMessage());
         verify(userRepository).findById(userId);
-        verify(userRepository).existsByEmail("new@example.com", userId);
+        verify(userRepository).existsByEmail(newEmail, userId);
         verify(userMapper, never()).updateUserFromRequest(any(), any());
         verify(userRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Update User but userId is NULL throws updateUser_nullUserId_throwsIllegalArgumentException")
+    @DisplayName("Update User but userId is NULL throws IllegalArgumentException")
     void updateUser_nullUserId_throwsException() {
         UpdateRequest request = new UpdateRequest();
         IllegalArgumentException exception = assertThrows(
@@ -284,17 +309,17 @@ class UserServiceImplTest {
     @DisplayName("Change Password with valid data returns void")
     void changePassword_successfulChange() {
         Long userId = 1L;
-        ChangePasswordRequest request = new ChangePasswordRequest();
-        request.setOldPassword("Password123!");
-        request.setNewPassword("Password123!!");
+        String oldPassword = "Password123!";
+        String newPassword = "Password123!!";
+        String oldHashedPassword = "oldHashedPass";
+        ChangePasswordRequest request = this.setupChangePasswordRequest(oldPassword, newPassword);
 
-        User user = new User();
+        User user = this.setupUser(this.username, null, null);
         user.setId(userId);
-        user.setUsername("testuser");
-        user.setPassword("oldHashedPass");
+        user.setPassword(oldHashedPassword);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("Password123!", "oldHashedPass")).thenReturn(true);
+        when(passwordEncoder.matches(oldPassword, oldHashedPassword)).thenReturn(true);
         when(passwordEncoder.encode(request.getNewPassword())).thenReturn("encodedPass");
         when(userRepository.save(user)).thenReturn(user);
 
@@ -302,23 +327,21 @@ class UserServiceImplTest {
 
         InOrder inOrder = inOrder(userRepository, refreshTokenRepository, passwordEncoder);
         inOrder.verify(userRepository).findById(userId);
-        inOrder.verify(passwordEncoder).matches("Password123!", "oldHashedPass");
-        inOrder.verify(passwordEncoder).encode("Password123!!");
+        inOrder.verify(passwordEncoder).matches(oldPassword, oldHashedPassword);
+        inOrder.verify(passwordEncoder).encode(newPassword);
         inOrder.verify(userRepository).save(user);
-        inOrder.verify(refreshTokenRepository).deleteByUsername("testuser");
+        inOrder.verify(refreshTokenRepository).deleteByUsername(this.username);
     }
 
     @Test
     @DisplayName("Change Password with incorect Old Password throws CannotProceedException")
     void changePassword_wrongOldPassword_throwsException() {
         Long userId = 1L;
-        ChangePasswordRequest request = new ChangePasswordRequest();
-        request.setOldPassword("Password123!");
-        request.setNewPassword("Password123!!");
+        String newPassword = "Password123!!";
+        ChangePasswordRequest request = this.setupChangePasswordRequest("Password123!", newPassword);
 
-        User user = new User();
+        User user = this.setupUser(this.username, null, null);
         user.setId(userId);
-        user.setUsername("testuser");
         user.setPassword("oldHashedPass");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -332,9 +355,9 @@ class UserServiceImplTest {
 
         verify(userRepository).findById(userId);
         verify(passwordEncoder).matches(request.getOldPassword(), user.getPassword());
-        verify(passwordEncoder, never()).encode("Password123!!");
+        verify(passwordEncoder, never()).encode(newPassword);
         verify(userRepository, never()).save(user);
-        verify(refreshTokenRepository, never()).deleteByUsername("testuser");
+        verify(refreshTokenRepository, never()).deleteByUsername(this.username);
     }
 
     @Test
@@ -379,7 +402,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    @DisplayName("Get User by Username but Username is NULL throws IllegalArgumentException")
+    @DisplayName("Get User by this.username but this.username is NULL throws IllegalArgumentException")
     void getUserByUsername_nullUsername_throwsExcepton() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
