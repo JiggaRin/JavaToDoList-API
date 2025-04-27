@@ -28,8 +28,8 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public List<CategoryDTO> getAllCategories() {
-        return categoryRepository.findAll()
-                .stream().map(categoryMapper::toCategoryDTO)
+        return this.categoryRepository.findAll()
+                .stream().map(this.categoryMapper::toCategoryDTO)
                 .collect(Collectors.toList());
     }
 
@@ -38,13 +38,13 @@ public class CategoryServiceImpl implements CategoryService {
         if (request == null) {
             throw new IllegalArgumentException("Category request cannot be null");
         }
-        if (!categoryRepository.isCategoryNameUnique(request.getName(), null)) {
+        if (!this.categoryRepository.isCategoryNameUnique(request.getName(), null)) {
             throw new ResourceConflictException("Category name must be unique.");
         }
 
-        Category category = categoryRepository.save(new Category(request.getName()));
+        Category category = this.categoryRepository.save(new Category(request.getName()));
 
-        return categoryMapper.toCategoryDTO(category);
+        return this.categoryMapper.toCategoryDTO(category);
     }
 
     @Override
@@ -53,10 +53,10 @@ public class CategoryServiceImpl implements CategoryService {
             throw new IllegalArgumentException("Category ID cannot be null");
         }
 
-        Category category = categoryRepository.findById(categoryId)
+        Category category = this.categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
 
-        return categoryMapper.toCategoryDTO(category);
+        return this.categoryMapper.toCategoryDTO(category);
     }
 
     @Override
@@ -69,16 +69,16 @@ public class CategoryServiceImpl implements CategoryService {
             throw new IllegalArgumentException("Category request cannot be null");
         }
 
-        Category existedCategory = categoryRepository.findById(categoryId)
+        Category existedCategory = this.categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
 
-        if (!categoryRepository.isCategoryNameUnique(request.getName(), existedCategory.getId())) {
+        if (!this.categoryRepository.isCategoryNameUnique(request.getName(), existedCategory.getId())) {
             throw new ResourceConflictException("Category name must be unique.");
         }
 
         existedCategory.setName(request.getName());
 
-        return categoryMapper.toCategoryDTO(categoryRepository.save(existedCategory));
+        return this.categoryMapper.toCategoryDTO(this.categoryRepository.save(existedCategory));
     }
 
     @Override
@@ -87,12 +87,12 @@ public class CategoryServiceImpl implements CategoryService {
             throw new IllegalArgumentException("Category ID cannot be null");
         }
         
-        Category existingCategory = categoryRepository.findById(categoryId)
+        Category existingCategory = this.categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
-        if (categoryRepository.isCategoryInUse(existingCategory.getId())) {
+        if (this.categoryRepository.isCategoryInUse(existingCategory.getId())) {
             throw new CategoryInUseException("Category cannot be deleted as it is assigned to one or more tasks.");
         }
-        categoryRepository.delete(existingCategory);
+        this.categoryRepository.delete(existingCategory);
     }
 
 }

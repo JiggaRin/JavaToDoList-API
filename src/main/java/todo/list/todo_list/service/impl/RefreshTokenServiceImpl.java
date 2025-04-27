@@ -34,18 +34,18 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
             throw new IllegalArgumentException("Refresh token cannot be null");
         }
         
-        Optional<RefreshToken> storedRefreshToken = refreshTokenRepository.findByRefreshToken(refreshToken);
+        Optional<RefreshToken> storedRefreshToken = this.refreshTokenRepository.findByRefreshToken(refreshToken);
 
         if (storedRefreshToken.isEmpty() || storedRefreshToken.get().getExpiration().isBefore(Instant.now())) {
             return null;
         }
 
-        User user = userService.getUserByUsername(storedRefreshToken.get().getUsername());
+        User user = this.userService.getUserByUsername(storedRefreshToken.get().getUsername());
         List<String> roles = user.getAuthorities().stream()
                 .map(authority -> authority.getAuthority())
                 .collect(Collectors.toList());
 
-        return jwtUtil.generateAccessToken(user.getUsername(), roles);
+        return this.jwtUtil.generateAccessToken(user.getUsername(), roles);
     }
 
     @Override
@@ -55,10 +55,10 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         }
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUsername(username);
-        refreshToken.setRefreshToken(jwtUtil.generateRefreshToken(username));
-        refreshToken.setExpiration(Instant.now().plusMillis(jwtUtil.getRefreshExpirationMillis()));
+        refreshToken.setRefreshToken(this.jwtUtil.generateRefreshToken(username));
+        refreshToken.setExpiration(Instant.now().plusMillis(this.jwtUtil.getRefreshExpirationMillis()));
 
-        return refreshTokenRepository.save(refreshToken);
+        return this.refreshTokenRepository.save(refreshToken);
     }
 
     @Override
@@ -67,6 +67,6 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         if (username == null) {
             throw new IllegalArgumentException("Username cannot be null");
         }
-        refreshTokenRepository.deleteByUsername(username);
+        this.refreshTokenRepository.deleteByUsername(username);
     }
 }

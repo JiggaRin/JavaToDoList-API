@@ -39,17 +39,17 @@ public class UserServiceImpl implements UserService {
         if (request == null) {
             throw new IllegalArgumentException("Registration request cannot be null");
         }
-        if (userRepository.existsByUsername(request.getUsername(), null)) {
+        if (this.userRepository.existsByUsername(request.getUsername(), null)) {
             throw new UserAlreadyExistsException("Username is already taken!");
         }
-        if (userRepository.existsByEmail(request.getEmail(), null)) {
+        if (this.userRepository.existsByEmail(request.getEmail(), null)) {
             throw new UserAlreadyExistsException("Email is already in use!");
         }
 
-        User user = userMapper.fromRegistrationRequest(request);
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        User user = this.userMapper.fromRegistrationRequest(request);
+        user.setPassword(this.passwordEncoder.encode(request.getPassword()));
 
-        userRepository.save(user);
+        this.userRepository.save(user);
 
         return new RegistrationResponse("User registered successfully", user.getUsername(), user.getEmail());
     }
@@ -63,15 +63,15 @@ public class UserServiceImpl implements UserService {
         if (request == null) {
             throw new IllegalArgumentException("Update request cannot be null");
         }
-        User user = userRepository.findById(userId)
+        User user = this.userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (userRepository.existsByEmail(request.getEmail(), userId)) {
+        if (this.userRepository.existsByEmail(request.getEmail(), userId)) {
             throw new UserAlreadyExistsException("Email is already in use!");
         }
 
-        userMapper.updateUserFromRequest(request, user);
-        return userMapper.toUserDTO(userRepository.save(user));
+        this.userMapper.updateUserFromRequest(request, user);
+        return this.userMapper.toUserDTO(this.userRepository.save(user));
     }
 
     @Override
@@ -85,16 +85,16 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Change Password request cannot be null");
         }
 
-        User user = userRepository.findById(userId)
+        User user = this.userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+        if (!this.passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
             throw new CannotProceedException("Old password is incorrect");
         }
 
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
-        refreshTokenRepository.deleteByUsername(user.getUsername());
+        user.setPassword(this.passwordEncoder.encode(request.getNewPassword()));
+        this.userRepository.save(user);
+        this.refreshTokenRepository.deleteByUsername(user.getUsername());
     }
 
     @Override
@@ -103,7 +103,7 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("User ID cannot be null");
         }
 
-        return userRepository.findById(userId)
+        return this.userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
     }
 
@@ -113,7 +113,7 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Username cannot be null");
         }
         
-        return userRepository.findByUsername(username)
+        return this.userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
     }
 }
