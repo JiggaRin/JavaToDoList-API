@@ -41,7 +41,7 @@ class CategoryServiceImplTest {
     private CategoryMapper categoryMapper;
 
     @InjectMocks
-    private CategoryServiceImpl categoryService;
+    private CategoryServiceImpl categoyService;
 
     private CategoryRequest setupCategoryRequest(String categoryName) {
         CategoryRequest request = new CategoryRequest();
@@ -74,18 +74,18 @@ class CategoryServiceImplTest {
 
         CategoryDTO dto = this.setupCategoryDTO(1L, "Category Name");
 
-        when(categoryRepository.isCategoryNameUnique(request.getName(), null)).thenReturn(true);
-        when(categoryRepository.save(any(Category.class))).thenReturn(savedCategory);
-        when(categoryMapper.toCategoryDTO(savedCategory)).thenReturn(dto);
+        when(this.categoryRepository.isCategoryNameUnique(request.getName(), null)).thenReturn(true);
+        when(this.categoryRepository.save(any(Category.class))).thenReturn(savedCategory);
+        when(this.categoryMapper.toCategoryDTO(savedCategory)).thenReturn(dto);
 
-        CategoryDTO result = categoryService.createCategory(request);
+        CategoryDTO result = this.categoyService.createCategory(request);
         assertNotNull(result);
         assertEquals(request.getName(), result.getName());
         assertEquals(1L, result.getId());
 
-        verify(categoryRepository).isCategoryNameUnique(request.getName(), null);
-        verify(categoryRepository).save(any(Category.class));
-        verify(categoryMapper).toCategoryDTO(savedCategory);
+        verify(this.categoryRepository).isCategoryNameUnique(request.getName(), null);
+        verify(this.categoryRepository).save(any(Category.class));
+        verify(this.categoryMapper).toCategoryDTO(savedCategory);
     }
 
     @Test
@@ -93,31 +93,31 @@ class CategoryServiceImplTest {
     void createCategory_duplicateCategoryName_throwsException() {
         CategoryRequest request = this.setupCategoryRequest("Category Name");
 
-        when(categoryRepository.isCategoryNameUnique(request.getName(), null)).thenReturn(false);
+        when(this.categoryRepository.isCategoryNameUnique(request.getName(), null)).thenReturn(false);
 
         ResourceConflictException exception = assertThrows(
                 ResourceConflictException.class,
-                () -> categoryService.createCategory(request)
+                () -> this.categoyService.createCategory(request)
         );
 
         assertEquals("Category name must be unique.", exception.getMessage());
 
-        verify(categoryRepository).isCategoryNameUnique(request.getName(), null);
-        verify(categoryRepository, never()).save(any(Category.class));
-        verify(categoryMapper, never()).toCategoryDTO(any(Category.class));
+        verify(this.categoryRepository).isCategoryNameUnique(request.getName(), null);
+        verify(this.categoryRepository, never()).save(any(Category.class));
+        verify(this.categoryMapper, never()).toCategoryDTO(any(Category.class));
     }
 
     @Test
     @DisplayName("Create Category but Category request in NULL throws IllegalArgumentException")
     void createCategory_nullRequest_throwsException() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            categoryService.createCategory(null);
+            this.categoyService.createCategory(null);
         });
         assertEquals("Category request cannot be null", exception.getMessage());
 
-        verify(categoryRepository, never()).isCategoryNameUnique(anyString(), anyLong());
-        verify(categoryRepository, never()).save(any());
-        verify(categoryMapper, never()).toCategoryDTO(any());
+        verify(this.categoryRepository, never()).isCategoryNameUnique(anyString(), anyLong());
+        verify(this.categoryRepository, never()).save(any());
+        verify(this.categoryMapper, never()).toCategoryDTO(any());
     }
 
     @Test
@@ -125,13 +125,13 @@ class CategoryServiceImplTest {
     void getCategory_nullCategoryId_throwsEsception() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> categoryService.getCategory(null)
+                () -> this.categoyService.getCategory(null)
         );
 
         assertEquals("Category ID cannot be null", exception.getMessage());
 
-        verify(categoryRepository, never()).findById(anyLong());
-        verify(categoryMapper, never()).toCategoryDTO(any());
+        verify(this.categoryRepository, never()).findById(anyLong());
+        verify(this.categoryMapper, never()).toCategoryDTO(any());
     }
 
     @Test
@@ -146,20 +146,20 @@ class CategoryServiceImplTest {
 
         Category category = this.setupCategory(categoryId, "New Category Name");
 
-        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
-        when(categoryRepository.isCategoryNameUnique(request.getName(), category.getId())).thenReturn(true);
-        when(categoryRepository.save(any(Category.class))).thenReturn(savedCategory);
-        when(categoryMapper.toCategoryDTO(savedCategory)).thenReturn(dto);
+        when(this.categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
+        when(this.categoryRepository.isCategoryNameUnique(request.getName(), category.getId())).thenReturn(true);
+        when(this.categoryRepository.save(any(Category.class))).thenReturn(savedCategory);
+        when(this.categoryMapper.toCategoryDTO(savedCategory)).thenReturn(dto);
 
-        CategoryDTO result = categoryService.updateCategory(categoryId, request);
+        CategoryDTO result = this.categoyService.updateCategory(categoryId, request);
         assertNotNull(result);
         assertEquals(request.getName(), result.getName());
         assertEquals(1L, result.getId());
 
-        verify(categoryRepository).findById(categoryId);
-        verify(categoryRepository).isCategoryNameUnique(request.getName(), category.getId());
-        verify(categoryRepository).save(any(Category.class));
-        verify(categoryMapper).toCategoryDTO(savedCategory);
+        verify(this.categoryRepository).findById(categoryId);
+        verify(this.categoryRepository).isCategoryNameUnique(request.getName(), category.getId());
+        verify(this.categoryRepository).save(any(Category.class));
+        verify(this.categoryMapper).toCategoryDTO(savedCategory);
     }
 
     @Test
@@ -168,18 +168,18 @@ class CategoryServiceImplTest {
         Long categoryId = 1L;
         CategoryRequest request = this.setupCategoryRequest("New Category Name");
 
-        when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
+        when(this.categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> categoryService.updateCategory(categoryId, request)
+                () -> this.categoyService.updateCategory(categoryId, request)
         );
         assertEquals("Category not found with ID: " + categoryId, exception.getMessage());
 
-        verify(categoryRepository).findById(categoryId);
-        verify(categoryRepository, never()).isCategoryNameUnique(anyString(), anyLong());
-        verify(categoryRepository, never()).save(any(Category.class));
-        verify(categoryMapper, never()).toCategoryDTO(any(Category.class));
+        verify(this.categoryRepository).findById(categoryId);
+        verify(this.categoryRepository, never()).isCategoryNameUnique(anyString(), anyLong());
+        verify(this.categoryRepository, never()).save(any(Category.class));
+        verify(this.categoryMapper, never()).toCategoryDTO(any(Category.class));
     }
 
     @Test
@@ -190,20 +190,20 @@ class CategoryServiceImplTest {
 
         Category category = this.setupCategory(categoryId, "Old Category Name");
 
-        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
+        when(this.categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
 
-        when(categoryRepository.isCategoryNameUnique(request.getName(), category.getId())).thenReturn(false);
+        when(this.categoryRepository.isCategoryNameUnique(request.getName(), category.getId())).thenReturn(false);
 
         ResourceConflictException exception = assertThrows(
                 ResourceConflictException.class,
-                () -> categoryService.updateCategory(categoryId, request)
+                () -> this.categoyService.updateCategory(categoryId, request)
         );
         assertEquals("Category name must be unique.", exception.getMessage());
 
-        verify(categoryRepository).findById(categoryId);
-        verify(categoryRepository).isCategoryNameUnique(request.getName(), categoryId);
-        verify(categoryRepository, never()).save(any(Category.class));
-        verify(categoryMapper, never()).toCategoryDTO(any(Category.class));
+        verify(this.categoryRepository).findById(categoryId);
+        verify(this.categoryRepository).isCategoryNameUnique(request.getName(), categoryId);
+        verify(this.categoryRepository, never()).save(any(Category.class));
+        verify(this.categoryMapper, never()).toCategoryDTO(any(Category.class));
     }
 
     @Test
@@ -212,10 +212,10 @@ class CategoryServiceImplTest {
         CategoryRequest request = new CategoryRequest();
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> categoryService.updateCategory(null, request)
+                () -> this.categoyService.updateCategory(null, request)
         );
         assertEquals("Category ID cannot be null", exception.getMessage());
-        verify(categoryRepository, never()).findById(any());
+        verify(this.categoryRepository, never()).findById(any());
     }
 
     @Test
@@ -223,14 +223,14 @@ class CategoryServiceImplTest {
     void updateCategory_nullRequest_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> categoryService.updateCategory(1L, null)
+                () -> this.categoyService.updateCategory(1L, null)
         );
         assertEquals("Category request cannot be null", exception.getMessage());
 
-        verify(categoryRepository, never()).findById(anyLong());
-        verify(categoryRepository, never()).isCategoryNameUnique(anyString(), anyLong());
-        verify(categoryRepository, never()).save(any());
-        verify(categoryMapper, never()).toCategoryDTO(any());
+        verify(this.categoryRepository, never()).findById(anyLong());
+        verify(this.categoryRepository, never()).isCategoryNameUnique(anyString(), anyLong());
+        verify(this.categoryRepository, never()).save(any());
+        verify(this.categoryMapper, never()).toCategoryDTO(any());
     }
 
     @Test
@@ -239,16 +239,16 @@ class CategoryServiceImplTest {
         Long categoryId = 1L;
         Category category = this.setupCategory(categoryId, "Old Category Name");
 
-        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
-        when(categoryRepository.isCategoryInUse(category.getId())).thenReturn(false);
-        doNothing().when(categoryRepository).delete(category);
+        when(this.categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
+        when(this.categoryRepository.isCategoryInUse(category.getId())).thenReturn(false);
+        doNothing().when(this.categoryRepository).delete(category);
 
-        categoryService.deleteCategory(categoryId);
+        this.categoyService.deleteCategory(categoryId);
 
-        InOrder inOrder = inOrder(categoryRepository);
-        inOrder.verify(categoryRepository).findById(categoryId);
-        inOrder.verify(categoryRepository).isCategoryInUse(category.getId());
-        inOrder.verify(categoryRepository).delete(category);
+        InOrder inOrder = inOrder(this.categoryRepository);
+        inOrder.verify(this.categoryRepository).findById(categoryId);
+        inOrder.verify(this.categoryRepository).isCategoryInUse(category.getId());
+        inOrder.verify(this.categoryRepository).delete(category);
     }
 
     @Test
@@ -256,10 +256,10 @@ class CategoryServiceImplTest {
     void deleteCategory_nullCategoryId_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> categoryService.deleteCategory(null)
+                () -> this.categoyService.deleteCategory(null)
         );
         assertEquals("Category ID cannot be null", exception.getMessage());
-        verify(categoryRepository, never()).findById(any());
+        verify(this.categoryRepository, never()).findById(any());
     }
 
     @Test
@@ -267,17 +267,17 @@ class CategoryServiceImplTest {
     void deleteCategory_categoryNotFound_throwsException() {
         Long categoryId = 1L;
 
-        when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
+        when(this.categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> categoryService.deleteCategory(categoryId)
+                () -> this.categoyService.deleteCategory(categoryId)
         );
         assertEquals("Category not found with ID: " + categoryId, exception.getMessage());
 
-        verify(categoryRepository).findById(categoryId);
-        verify(categoryRepository, never()).isCategoryInUse(anyLong());
-        verify(categoryRepository, never()).delete(any(Category.class));
+        verify(this.categoryRepository).findById(categoryId);
+        verify(this.categoryRepository, never()).isCategoryInUse(anyLong());
+        verify(this.categoryRepository, never()).delete(any(Category.class));
     }
 
     @Test
@@ -286,17 +286,17 @@ class CategoryServiceImplTest {
         Long categoryId = 1L;
         Category category = this.setupCategory(categoryId, "Old Category Name");
 
-        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
-        when(categoryRepository.isCategoryInUse(category.getId())).thenReturn(true);
+        when(this.categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
+        when(this.categoryRepository.isCategoryInUse(category.getId())).thenReturn(true);
 
         CategoryInUseException exception = assertThrows(
                 CategoryInUseException.class,
-                () -> categoryService.deleteCategory(category.getId())
+                () -> this.categoyService.deleteCategory(category.getId())
         );
         assertEquals("Category cannot be deleted as it is assigned to one or more tasks.", exception.getMessage());
 
-        verify(categoryRepository).findById(category.getId());
-        verify(categoryRepository).isCategoryInUse(category.getId());
-        verify(categoryRepository, never()).delete(any(Category.class));
+        verify(this.categoryRepository).findById(category.getId());
+        verify(this.categoryRepository).isCategoryInUse(category.getId());
+        verify(this.categoryRepository, never()).delete(any(Category.class));
     }
 }

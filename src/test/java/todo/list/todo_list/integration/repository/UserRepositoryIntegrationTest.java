@@ -1,13 +1,14 @@
 package todo.list.todo_list.integration.repository;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,10 @@ import todo.list.todo_list.repository.UserRepository;
 @ActiveProfiles("test")
 class UserRepositoryIntegrationTest {
 
+    private final String username = "testuser";
+
+    private final String email = "test@example.com";
+
     @Autowired
     private UserRepository userRepository;
 
@@ -36,21 +41,22 @@ class UserRepositoryIntegrationTest {
         user.setRole(Role.USER);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
+
         return user;
     }
 
     @Test
     @DisplayName("Save User with valid data persists and returns User")
     void saveUser_validData_successfulSave() {
-        User user = setupUser("testuser", "test@example.com");
+        User user = this.setupUser(this.username, this.email);
         user.setFirstName("Test");
         user.setLastName("User");
 
-        User savedUser = userRepository.save(user);
+        User savedUser = this.userRepository.save(user);
 
         assertNotNull(savedUser.getId());
-        assertEquals("testuser", savedUser.getUsername());
-        assertEquals("test@example.com", savedUser.getEmail());
+        assertEquals(this.username, savedUser.getUsername());
+        assertEquals(this.email, savedUser.getEmail());
         assertEquals(Role.USER, savedUser.getRole());
         assertEquals("Test", savedUser.getFirstName());
         assertEquals("User", savedUser.getLastName());
@@ -60,37 +66,37 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Find User by ID when user exists returns User")
     void findById_userExists_returnsUser() {
-        User user = setupUser("testuser", "test@example.com");
-        User savedUser = userRepository.save(user);
+        User user = this.setupUser(this.username, this.email);
+        User savedUser = this.userRepository.save(user);
 
-        Optional<User> result = userRepository.findById(savedUser.getId());
+        Optional<User> result = this.userRepository.findById(savedUser.getId());
 
         assertTrue(result.isPresent());
         assertEquals(savedUser.getId(), result.get().getId());
-        assertEquals("testuser", result.get().getUsername());
+        assertEquals(this.username, result.get().getUsername());
     }
 
     @Test
     @DisplayName("Find User by username when user exists returns User")
     void findByUsername_ShouldReturnUser_WhenUserExists() {
-        User user = setupUser("testuser", "test@example.com");
-        userRepository.save(user);
+        User user = this.setupUser(this.username, this.email);
+        this.userRepository.save(user);
 
-        Optional<User> result = userRepository.findByUsername("testuser");
+        Optional<User> result = this.userRepository.findByUsername(this.username);
 
         assertTrue(result.isPresent());
-        assertEquals("testuser", result.get().getUsername());
-        assertEquals("test@example.com", result.get().getEmail());
+        assertEquals(this.username, result.get().getUsername());
+        assertEquals(this.email, result.get().getEmail());
         assertEquals(Role.USER, result.get().getRole());
     }
 
     @Test
     @DisplayName("Exists by username when username exists returns true")
     void existsByUsername_ShouldReturnTrue_WhenUsernameExists() {
-        User user = setupUser("uniqueuser", "unique@example.com");
-        userRepository.save(user);
+        User user = this.setupUser("uniqueuser", "unique@example.com");
+        this.userRepository.save(user);
 
-        boolean exists = userRepository.existsByUsername("uniqueuser", null);
+        boolean exists = this.userRepository.existsByUsername("uniqueuser", null);
 
         assertTrue(exists);
     }
@@ -98,7 +104,7 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Exists by username when username does not exist returns false")
     void existsByUsername_ShouldReturnFalse_WhenUsernameDoesNotExist() {
-        boolean exists = userRepository.existsByUsername("nonexistent", null);
+        boolean exists = this.userRepository.existsByUsername("nonexistent", null);
 
         assertFalse(exists);
     }
@@ -106,10 +112,10 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Exists by email when email exists returns true")
     void existsByEmail_ShouldReturnTrue_WhenEmailExists() {
-        User user = setupUser("emailuser", "email@example.com");
-        userRepository.save(user);
+        User user = this.setupUser("emailuser", "email@example.com");
+        this.userRepository.save(user);
 
-        boolean exists = userRepository.existsByEmail("email@example.com", null);
+        boolean exists = this.userRepository.existsByEmail("email@example.com", null);
 
         assertTrue(exists);
     }
@@ -117,7 +123,7 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Exists by email when email does not exist returns false")
     void existsByEmail_ShouldReturnFalse_WhenEmailDoesNotExist() {
-        boolean exists = userRepository.existsByEmail("absent@example.com", null);
+        boolean exists = this.userRepository.existsByEmail("absent@example.com", null);
 
         assertFalse(exists);
     }
@@ -125,10 +131,10 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Save user with null email throws DataIntegrityViolationException")
     void saveUser_WithNullEmail_ShouldThrowException() {
-        User user = setupUser("testuser", null);
+        User user = this.setupUser(this.username, null);
 
         try {
-            userRepository.saveAndFlush(user);
+            this.userRepository.saveAndFlush(user);
             fail("Expected DataIntegrityViolationException but none was thrown");
         } catch (DataIntegrityViolationException e) {
             assertTrue(true);
@@ -138,13 +144,13 @@ class UserRepositoryIntegrationTest {
     @Test
     @DisplayName("Save user with duplicate username throws DataIntegrityViolationException")
     void saveUser_DuplicateUsername_ShouldThrowException() {
-        User firstUser = setupUser("testuser", "testuser1@example.com");
-        userRepository.saveAndFlush(firstUser);
+        User firstUser = this.setupUser(this.username, "testuser1@example.com");
+        this.userRepository.saveAndFlush(firstUser);
 
-        User duplicate = setupUser("testuser", "testuser2@example.com");
+        User duplicate = this.setupUser(this.username, "testuser2@example.com");
 
         try {
-            userRepository.saveAndFlush(duplicate);
+            this.userRepository.saveAndFlush(duplicate);
             fail("Expected DataIntegrityViolationException but none was thrown");
         } catch (DataIntegrityViolationException e) {
             assertTrue(true);
