@@ -1,11 +1,25 @@
 package todo.list.todo_list.service.impl;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -14,21 +28,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -140,22 +139,22 @@ class TaskServiceImplTest {
             when(securityContext.getAuthentication()).thenReturn(authentication);
             when(authentication.getName()).thenReturn(this.username);
 
-            when(this.userService.getUserByUsername(this.username)).thenReturn(user);
-            when(this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
-            when(this.categoryRepository.findByName(categoryName1)).thenReturn(Optional.of(work));
-            when(this.categoryRepository.findByName(categoryName2)).thenReturn(Optional.of(urgent));
-            when(this.taskMapper.fromTaskRequest(request)).thenReturn(task);
-            when(this.taskRepository.save(task)).thenReturn(task);
-            when(this.taskMapper.toTaskDTO(task)).thenReturn(dto);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
+            when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
+            when(categoryRepository.findByName(categoryName1)).thenReturn(Optional.of(work));
+            when(categoryRepository.findByName(categoryName2)).thenReturn(Optional.of(urgent));
+            when(taskMapper.fromTaskRequest(request)).thenReturn(task);
+            when(taskRepository.save(task)).thenReturn(task);
+            when(taskMapper.toTaskDTO(task)).thenReturn(dto);
 
-            TaskDTO result = this.taskService.createTask(request);
+            TaskDTO result = taskService.createTask(request);
             assertNotNull(result);
             assertEquals(request.getTitle(), result.getTitle());
             assertEquals(request.getDescription(), result.getDescription());
             assertEquals(Status.TODO, result.getStatus());
             assertEquals(new HashSet<>(request.getCategoryNames()), result.getCategories());
 
-            verify(this.taskRepository).save(task);
+            verify(taskRepository).save(task);
         }
     }
 
@@ -172,21 +171,21 @@ class TaskServiceImplTest {
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
             when(authentication.getName()).thenReturn(this.username);
-            when(this.userService.getUserByUsername(this.username)).thenReturn(user);
-            when(this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(false);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
+            when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(false);
 
             ResourceConflictException exception = assertThrows(
                     ResourceConflictException.class,
-                    () -> this.taskService.createTask(request)
+                    () -> taskService.createTask(request)
             );
 
             assertEquals("Title must be unique for the user", exception.getMessage());
 
-            verify(this.userService).getUserByUsername(this.username);
-            verify(this.taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
-            verify(this.taskMapper, never()).fromTaskRequest(request);
-            verify(this.taskRepository, never()).save(any(Task.class));
-            verify(this.taskMapper, never()).toTaskDTO(any(Task.class));
+            verify(userService).getUserByUsername(this.username);
+            verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
+            verify(taskMapper, never()).fromTaskRequest(request);
+            verify(taskRepository, never()).save(any(Task.class));
+            verify(taskMapper, never()).toTaskDTO(any(Task.class));
         }
     }
 
@@ -203,21 +202,21 @@ class TaskServiceImplTest {
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
             when(authentication.getName()).thenReturn(this.username);
-            when(this.userService.getUserByUsername(this.username)).thenReturn(user);
-            when(this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
+            when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
 
             DuplicateCategoryException exception = assertThrows(
                     DuplicateCategoryException.class,
-                    () -> this.taskService.createTask(request)
+                    () -> taskService.createTask(request)
             );
 
             assertEquals("A task cannot have duplicate categories.", exception.getMessage());
 
-            verify(this.userService).getUserByUsername(this.username);
-            verify(this.taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
-            verify(this.taskMapper, never()).fromTaskRequest(request);
-            verify(this.taskRepository, never()).save(any(Task.class));
-            verify(this.taskMapper, never()).toTaskDTO(any(Task.class));
+            verify(userService).getUserByUsername(this.username);
+            verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
+            verify(taskMapper, never()).fromTaskRequest(request);
+            verify(taskRepository, never()).save(any(Task.class));
+            verify(taskMapper, never()).toTaskDTO(any(Task.class));
         }
     }
 
@@ -236,27 +235,27 @@ class TaskServiceImplTest {
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
             when(authentication.getName()).thenReturn(this.username);
-            when(this.userService.getUserByUsername(this.username)).thenReturn(user);
-            when(this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
-            when(this.taskMapper.fromTaskRequest(request)).thenReturn(task);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
+            when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
+            when(taskMapper.fromTaskRequest(request)).thenReturn(task);
 
-            when(this.taskRepository.findById(request.getParentId())).thenReturn(Optional.empty());
+            when(taskRepository.findById(request.getParentId())).thenReturn(Optional.empty());
 
             ResourceNotFoundException exception = assertThrows(
                     ResourceNotFoundException.class,
-                    () -> this.taskService.createTask(request)
+                    () -> taskService.createTask(request)
             );
 
             assertEquals("Parent Task not found with ID: " + request.getParentId(), exception.getMessage());
 
-            verify(this.userService).getUserByUsername(this.username);
-            verify(this.taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
-            verify(this.taskMapper).fromTaskRequest(request);
-            verify(this.taskRepository).findById(request.getParentId());
+            verify(userService).getUserByUsername(this.username);
+            verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
+            verify(taskMapper).fromTaskRequest(request);
+            verify(taskRepository).findById(request.getParentId());
 
-            verify(this.categoryRepository, never()).findByName(anyString());
-            verify(this.taskRepository, never()).save(any(Task.class));
-            verify(this.taskMapper, never()).toTaskDTO(any(Task.class));
+            verify(categoryRepository, never()).findByName(anyString());
+            verify(taskRepository, never()).save(any(Task.class));
+            verify(taskMapper, never()).toTaskDTO(any(Task.class));
         }
     }
 
@@ -279,24 +278,24 @@ class TaskServiceImplTest {
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
             when(authentication.getName()).thenReturn(this.username);
-            when(this.userService.getUserByUsername(this.username)).thenReturn(currentUser);
-            when(this.taskRepository.isTitleUnique(request.getTitle(), currentUser.getId(), null)).thenReturn(true);
-            when(this.taskMapper.fromTaskRequest(request)).thenReturn(task);
-            when(this.taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
+            when(userService.getUserByUsername(this.username)).thenReturn(currentUser);
+            when(taskRepository.isTitleUnique(request.getTitle(), currentUser.getId(), null)).thenReturn(true);
+            when(taskMapper.fromTaskRequest(request)).thenReturn(task);
+            when(taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
 
             AccessDeniedException exception = assertThrows(
                     AccessDeniedException.class,
-                    () -> this.taskService.createTask(request)
+                    () -> taskService.createTask(request)
             );
 
             assertEquals("Parent task must belong to the authenticated user.", exception.getMessage());
 
-            verify(this.userService).getUserByUsername(this.username);
-            verify(this.taskRepository).isTitleUnique(request.getTitle(), currentUser.getId(), null);
-            verify(this.taskMapper).fromTaskRequest(request);
-            verify(this.taskRepository).findById(request.getParentId());
-            verify(this.taskRepository, never()).save(any(Task.class));
-            verify(this.taskMapper, never()).toTaskDTO(any(Task.class));
+            verify(userService).getUserByUsername(this.username);
+            verify(taskRepository).isTitleUnique(request.getTitle(), currentUser.getId(), null);
+            verify(taskMapper).fromTaskRequest(request);
+            verify(taskRepository).findById(request.getParentId());
+            verify(taskRepository, never()).save(any(Task.class));
+            verify(taskMapper, never()).toTaskDTO(any(Task.class));
         }
     }
 
@@ -325,27 +324,27 @@ class TaskServiceImplTest {
             when(securityContext.getAuthentication()).thenReturn(authentication);
             when(authentication.getName()).thenReturn(this.username);
 
-            when(this.userService.getUserByUsername(this.username)).thenReturn(user);
-            when(this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
-            when(this.categoryRepository.findByName(categoryName1)).thenReturn(Optional.of(work));
-            when(this.categoryRepository.findByName(categoryName2)).thenReturn(Optional.of(urgent));
-            when(this.taskMapper.fromTaskRequest(request)).thenReturn(task);
-            when(this.taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
-            when(this.taskRepository.save(task)).thenReturn(null);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
+            when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)).thenReturn(true);
+            when(categoryRepository.findByName(categoryName1)).thenReturn(Optional.of(work));
+            when(categoryRepository.findByName(categoryName2)).thenReturn(Optional.of(urgent));
+            when(taskMapper.fromTaskRequest(request)).thenReturn(task);
+            when(taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
+            when(taskRepository.save(task)).thenReturn(null);
 
             IllegalStateException exception = assertThrows(
                     IllegalStateException.class,
-                    () -> this.taskService.createTask(request)
+                    () -> taskService.createTask(request)
             );
 
             assertEquals("Failed to save task", exception.getMessage());
 
-            verify(this.userService).getUserByUsername(this.username);
-            verify(this.taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
-            verify(this.taskMapper).fromTaskRequest(request);
-            verify(this.taskRepository).findById(request.getParentId());
-            verify(this.taskRepository).save(any(Task.class));
-            verify(this.taskMapper, never()).toTaskDTO(any(Task.class));
+            verify(userService).getUserByUsername(this.username);
+            verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), null);
+            verify(taskMapper).fromTaskRequest(request);
+            verify(taskRepository).findById(request.getParentId());
+            verify(taskRepository).save(any(Task.class));
+            verify(taskMapper, never()).toTaskDTO(any(Task.class));
         }
     }
 
@@ -354,15 +353,15 @@ class TaskServiceImplTest {
     void createTask_nullRequest_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.taskService.createTask(null)
+                () -> taskService.createTask(null)
         );
         assertEquals("Task request cannot be null", exception.getMessage());
 
-        verify(this.userService, never()).getUserByUsername(anyString());
-        verify(this.taskRepository, never()).isTitleUnique(anyString(), any(), any());
-        verify(this.taskMapper, never()).fromTaskRequest(any());
-        verify(this.taskRepository, never()).save(any());
-        verify(this.taskMapper, never()).toTaskDTO(any());
+        verify(userService, never()).getUserByUsername(anyString());
+        verify(taskRepository, never()).isTitleUnique(anyString(), any(), any());
+        verify(taskMapper, never()).fromTaskRequest(any());
+        verify(taskRepository, never()).save(any());
+        verify(taskMapper, never()).toTaskDTO(any());
     }
 
     @Test
@@ -370,12 +369,12 @@ class TaskServiceImplTest {
     void getTask_nullTaskId_throwsEsception() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.taskService.getTask(null)
+                () -> taskService.getTask(null)
         );
 
         assertEquals("Task ID cannot be null", exception.getMessage());
 
-        verify(this.taskRepository, never()).findById(anyLong());
+        verify(taskRepository, never()).findById(anyLong());
     }
 
     @Test
@@ -410,21 +409,21 @@ class TaskServiceImplTest {
             when(securityContext.getAuthentication()).thenReturn(authentication);
             when(authentication.getName()).thenReturn(this.username);
 
-            when(this.userService.getUserByUsername(this.username)).thenReturn(user);
-            when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
-            when(this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
-            when(this.categoryRepository.findByName(categoryName1)).thenReturn(Optional.of(work));
-            when(this.categoryRepository.findByName(categoryName2)).thenReturn(Optional.of(urgent));
-            doNothing().when(this.taskMapper).updateTaskFromRequest(request, existedTask);
-            when(this.taskRepository.save(existedTask)).thenReturn(existedTask);
-            when(this.taskMapper.toTaskDTO(existedTask)).thenReturn(dto);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
+            when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
+            when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
+            when(categoryRepository.findByName(categoryName1)).thenReturn(Optional.of(work));
+            when(categoryRepository.findByName(categoryName2)).thenReturn(Optional.of(urgent));
+            doNothing().when(taskMapper).updateTaskFromRequest(request, existedTask);
+            when(taskRepository.save(existedTask)).thenReturn(existedTask);
+            when(taskMapper.toTaskDTO(existedTask)).thenReturn(dto);
 
-            TaskDTO result = this.taskService.updateTask(taskId, request);
+            TaskDTO result = taskService.updateTask(taskId, request);
             assertNotNull(result);
             assertEquals(request.getTitle(), result.getTitle());
             assertEquals(new HashSet<>(request.getCategoryNames()), result.getCategories());
 
-            verify(this.taskRepository).save(existedTask);
+            verify(taskRepository).save(existedTask);
         }
     }
 
@@ -438,21 +437,21 @@ class TaskServiceImplTest {
         Long taskId = 1L;
         Task existedTask = this.setupTask(user, taskId, null);
 
-        when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
-        when(this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(false);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
+        when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(false);
 
         ResourceConflictException exception = assertThrows(
                 ResourceConflictException.class,
-                () -> this.taskService.updateTask(taskId, request)
+                () -> taskService.updateTask(taskId, request)
         );
 
         assertEquals("Title must be unique for the user.", exception.getMessage());
 
-        verify(this.taskRepository).findById(taskId);
-        verify(this.taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
-        verify(this.taskMapper, never()).updateTaskFromRequest(request, existedTask);
-        verify(this.taskRepository, never()).save(any(Task.class));
-        verify(this.taskMapper, never()).toTaskDTO(any(Task.class));
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
+        verify(taskMapper, never()).updateTaskFromRequest(request, existedTask);
+        verify(taskRepository, never()).save(any(Task.class));
+        verify(taskMapper, never()).toTaskDTO(any(Task.class));
     }
 
     @Test
@@ -465,10 +464,10 @@ class TaskServiceImplTest {
         Long taskId = 1L;
         Task existedTask = this.setupTask(user, taskId, null);
 
-        when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
-        when(this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
+        when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
 
-        TaskServiceImpl taskServiceSpy = spy(this.taskService);
+        TaskServiceImpl taskServiceSpy = spy(taskService);
         when(taskServiceSpy.hasDuplicateCategories(request.getCategoryNames())).thenReturn(true);
 
         DuplicateCategoryException exception = assertThrows(
@@ -478,12 +477,12 @@ class TaskServiceImplTest {
 
         assertEquals("A task cannot have duplicate categories.", exception.getMessage());
 
-        verify(this.taskRepository).findById(taskId);
-        verify(this.taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
         verify(taskServiceSpy).hasDuplicateCategories(request.getCategoryNames());
-        verify(this.taskMapper, never()).updateTaskFromRequest(request, existedTask);
-        verify(this.taskRepository, never()).save(any(Task.class));
-        verify(this.taskMapper, never()).toTaskDTO(any(Task.class));
+        verify(taskMapper, never()).updateTaskFromRequest(request, existedTask);
+        verify(taskRepository, never()).save(any(Task.class));
+        verify(taskMapper, never()).toTaskDTO(any(Task.class));
     }
 
     @Test
@@ -500,12 +499,12 @@ class TaskServiceImplTest {
         Task childTask = this.setupTask(user, 2L, Status.TODO);
 
         List<Task> childTasks = Arrays.asList(childTask);
-        TaskServiceImpl taskServiceSpy = spy(this.taskService);
+        TaskServiceImpl taskServiceSpy = spy(taskService);
 
-        when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
-        when(this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
+        when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
         when(taskServiceSpy.hasDuplicateCategories(request.getCategoryNames())).thenReturn(false);
-        when(this.taskRepository.findByParentTaskId(taskId)).thenReturn(childTasks);
+        when(taskRepository.findByParentTaskId(taskId)).thenReturn(childTasks);
 
         CannotProceedException exception = assertThrows(
                 CannotProceedException.class,
@@ -514,10 +513,10 @@ class TaskServiceImplTest {
 
         assertEquals("Cannot proceed with task " + taskId + " while child tasks are not completed.", exception.getMessage());
 
-        verify(this.taskRepository).findById(taskId);
-        verify(this.taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
-        verify(this.taskRepository).findByParentTaskId(taskId);
-        verify(this.taskMapper, never()).updateTaskFromRequest(request, existedTask);
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
+        verify(taskRepository).findByParentTaskId(taskId);
+        verify(taskMapper, never()).updateTaskFromRequest(request, existedTask);
     }
 
     @Test
@@ -536,28 +535,28 @@ class TaskServiceImplTest {
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
             when(authentication.getName()).thenReturn(this.username);
-            when(this.userService.getUserByUsername(this.username)).thenReturn(user);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
 
-            when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
-            when(this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
-            doNothing().when(this.taskMapper).updateTaskFromRequest(request, existedTask);
+            when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
+            when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
+            doNothing().when(taskMapper).updateTaskFromRequest(request, existedTask);
 
-            when(this.taskRepository.findById(request.getParentId())).thenReturn(Optional.empty());
+            when(taskRepository.findById(request.getParentId())).thenReturn(Optional.empty());
 
             ResourceNotFoundException exception = assertThrows(
                     ResourceNotFoundException.class,
-                    () -> this.taskService.updateTask(taskId, request)
+                    () -> taskService.updateTask(taskId, request)
             );
 
             assertEquals("Parent Task not found with ID: " + request.getParentId(), exception.getMessage());
 
-            verify(this.userService).getUserByUsername(this.username);
-            verify(this.taskRepository).findById(taskId);
-            verify(this.taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
-            verify(this.taskMapper).updateTaskFromRequest(request, existedTask);
-            verify(this.taskRepository).findById(request.getParentId());
-            verify(this.taskRepository, never()).save(any(Task.class));
-            verify(this.taskMapper, never()).toTaskDTO(any(Task.class));
+            verify(userService).getUserByUsername(this.username);
+            verify(taskRepository).findById(taskId);
+            verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
+            verify(taskMapper).updateTaskFromRequest(request, existedTask);
+            verify(taskRepository).findById(request.getParentId());
+            verify(taskRepository, never()).save(any(Task.class));
+            verify(taskMapper, never()).toTaskDTO(any(Task.class));
         }
     }
 
@@ -581,28 +580,28 @@ class TaskServiceImplTest {
             mockedStatic.when(SecurityContextHolder::getContext).thenReturn(securityContext);
             when(securityContext.getAuthentication()).thenReturn(authentication);
             when(authentication.getName()).thenReturn(this.username);
-            when(this.userService.getUserByUsername(this.username)).thenReturn(user);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
 
-            when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
-            when(this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
-            doNothing().when(this.taskMapper).updateTaskFromRequest(request, existedTask);
+            when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
+            when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
+            doNothing().when(taskMapper).updateTaskFromRequest(request, existedTask);
 
-            when(this.taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
+            when(taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
 
             AccessDeniedException exception = assertThrows(
                     AccessDeniedException.class,
-                    () -> this.taskService.updateTask(taskId, request)
+                    () -> taskService.updateTask(taskId, request)
             );
 
             assertEquals("Parent task must belong to the authenticated user.", exception.getMessage());
 
-            verify(this.userService).getUserByUsername(this.username);
-            verify(this.taskRepository).findById(taskId);
-            verify(this.taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
-            verify(this.taskMapper).updateTaskFromRequest(request, existedTask);
-            verify(this.taskRepository).findById(request.getParentId());
-            verify(this.taskRepository, never()).save(any(Task.class));
-            verify(this.taskMapper, never()).toTaskDTO(any(Task.class));
+            verify(userService).getUserByUsername(this.username);
+            verify(taskRepository).findById(taskId);
+            verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
+            verify(taskMapper).updateTaskFromRequest(request, existedTask);
+            verify(taskRepository).findById(request.getParentId());
+            verify(taskRepository, never()).save(any(Task.class));
+            verify(taskMapper, never()).toTaskDTO(any(Task.class));
         }
     }
 
@@ -633,29 +632,29 @@ class TaskServiceImplTest {
             when(securityContext.getAuthentication()).thenReturn(authentication);
             when(authentication.getName()).thenReturn(this.username);
 
-            when(this.userService.getUserByUsername(this.username)).thenReturn(user);
-            when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
-            when(this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
-            when(this.categoryRepository.findByName(categoryName1)).thenReturn(Optional.of(work));
-            when(this.categoryRepository.findByName(categoryName2)).thenReturn(Optional.of(urgent));
-            doNothing().when(this.taskMapper).updateTaskFromRequest(request, existedTask);
-            when(this.taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
-            when(this.taskRepository.save(existedTask)).thenReturn(null);
+            when(userService.getUserByUsername(this.username)).thenReturn(user);
+            when(taskRepository.findById(taskId)).thenReturn(Optional.of(existedTask));
+            when(taskRepository.isTitleUnique(request.getTitle(), user.getId(), taskId)).thenReturn(true);
+            when(categoryRepository.findByName(categoryName1)).thenReturn(Optional.of(work));
+            when(categoryRepository.findByName(categoryName2)).thenReturn(Optional.of(urgent));
+            doNothing().when(taskMapper).updateTaskFromRequest(request, existedTask);
+            when(taskRepository.findById(request.getParentId())).thenReturn(Optional.of(parentTask));
+            when(taskRepository.save(existedTask)).thenReturn(null);
 
             IllegalStateException exception = assertThrows(
                     IllegalStateException.class,
-                    () -> this.taskService.updateTask(taskId, request)
+                    () -> taskService.updateTask(taskId, request)
             );
 
             assertEquals("Failed to save task with ID: " + taskId, exception.getMessage());
 
-            verify(this.userService).getUserByUsername(this.username);
-            verify(this.taskRepository).findById(taskId);
-            verify(this.taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
-            verify(this.taskMapper).updateTaskFromRequest(request, existedTask);
-            verify(this.taskRepository).findById(request.getParentId());
-            verify(this.taskRepository).save(any(Task.class));
-            verify(this.taskMapper, never()).toTaskDTO(any(Task.class));
+            verify(userService).getUserByUsername(this.username);
+            verify(taskRepository).findById(taskId);
+            verify(taskRepository).isTitleUnique(request.getTitle(), user.getId(), taskId);
+            verify(taskMapper).updateTaskFromRequest(request, existedTask);
+            verify(taskRepository).findById(request.getParentId());
+            verify(taskRepository).save(any(Task.class));
+            verify(taskMapper, never()).toTaskDTO(any(Task.class));
         }
     }
 
@@ -664,10 +663,10 @@ class TaskServiceImplTest {
     void updateTask_nullTaskId_throwsException() {
         TaskRequest request = new TaskRequest();
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            this.taskService.updateTask(null, request);
+            taskService.updateTask(null, request);
         });
         assertEquals("Task ID cannot be null", exception.getMessage());
-        verify(this.taskRepository, never()).findById(any());
+        verify(taskRepository, never()).findById(any());
     }
 
     @Test
@@ -675,11 +674,11 @@ class TaskServiceImplTest {
     void updateTask_nullRequest_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.taskService.updateTask(1L, null)
+                () -> taskService.updateTask(1L, null)
         );
         assertEquals("Task request cannot be null", exception.getMessage());
 
-        verify(this.taskRepository, never()).save(any());
+        verify(taskRepository, never()).save(any());
     }
 
     @Test
@@ -696,19 +695,19 @@ class TaskServiceImplTest {
 
         TaskDTO dto = this.setupTaskDTO(taskId, Status.DONE, null);
 
-        when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(task));
-        when(this.taskRepository.findByParentTaskId(taskId)).thenReturn(Collections.emptyList());
-        when(this.taskRepository.save(task)).thenReturn(updatedTask);
-        when(this.taskMapper.toTaskDTO(updatedTask)).thenReturn(dto);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(taskRepository.findByParentTaskId(taskId)).thenReturn(Collections.emptyList());
+        when(taskRepository.save(task)).thenReturn(updatedTask);
+        when(taskMapper.toTaskDTO(updatedTask)).thenReturn(dto);
 
-        TaskDTO result = this.taskService.updateTaskStatus(taskId, request);
+        TaskDTO result = taskService.updateTaskStatus(taskId, request);
         assertNotNull(result);
         assertEquals(Status.DONE, result.getStatus());
         assertEquals(taskId, result.getId());
 
-        verify(this.taskRepository).findById(taskId);
-        verify(this.taskRepository).save(task);
-        verify(this.taskMapper).toTaskDTO(updatedTask);
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository).save(task);
+        verify(taskMapper).toTaskDTO(updatedTask);
     }
 
     @Test
@@ -725,18 +724,18 @@ class TaskServiceImplTest {
 
         TaskDTO dto = this.setupTaskDTO(taskId, Status.IN_PROGRESS, null);
 
-        when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(task));
-        when(this.taskRepository.save(task)).thenReturn(updatedTask);
-        when(this.taskMapper.toTaskDTO(updatedTask)).thenReturn(dto);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(taskRepository.save(task)).thenReturn(updatedTask);
+        when(taskMapper.toTaskDTO(updatedTask)).thenReturn(dto);
 
-        TaskDTO result = this.taskService.updateTaskStatus(taskId, request);
+        TaskDTO result = taskService.updateTaskStatus(taskId, request);
         assertNotNull(result);
         assertEquals(Status.IN_PROGRESS, result.getStatus());
         assertEquals(taskId, result.getId());
 
-        verify(this.taskRepository).findById(taskId);
-        verify(this.taskRepository).save(task);
-        verify(this.taskMapper).toTaskDTO(updatedTask);
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository).save(task);
+        verify(taskMapper).toTaskDTO(updatedTask);
     }
 
     @Test
@@ -749,18 +748,18 @@ class TaskServiceImplTest {
 
         this.setupTask(null, 2L, Status.TODO);
 
-        when(this.taskRepository.findById(taskId)).thenReturn(Optional.empty());
+        when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> this.taskService.updateTaskStatus(taskId, request)
+                () -> taskService.updateTaskStatus(taskId, request)
         );
 
         assertEquals("Task not found with ID: " + taskId, exception.getMessage());
 
-        verify(this.taskRepository).findById(taskId);
-        verify(this.taskRepository, never()).save(any(Task.class));
-        verify(this.taskMapper, never()).toTaskDTO(any(Task.class));
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository, never()).save(any(Task.class));
+        verify(taskMapper, never()).toTaskDTO(any(Task.class));
     }
 
     @Test
@@ -773,9 +772,9 @@ class TaskServiceImplTest {
 
         Task task = this.setupTask(null, taskId, Status.TODO);
 
-        when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
 
-        TaskServiceImpl taskServiceSpy = spy(this.taskService);
+        TaskServiceImpl taskServiceSpy = spy(taskService);
         doThrow(new CannotProceedException("Cannot proceed with task " + taskId + " while child tasks are not completed."))
                 .when(taskServiceSpy).validateChildTaskCompletion(taskId);
 
@@ -786,10 +785,10 @@ class TaskServiceImplTest {
 
         assertEquals("Cannot proceed with task " + taskId + " while child tasks are not completed.", exception.getMessage());
 
-        verify(this.taskRepository).findById(taskId);
+        verify(taskRepository).findById(taskId);
         verify(taskServiceSpy).validateChildTaskCompletion(taskId);
-        verify(this.taskRepository, never()).save(any(Task.class));
-        verify(this.taskMapper, never()).toTaskDTO(any(Task.class));
+        verify(taskRepository, never()).save(any(Task.class));
+        verify(taskMapper, never()).toTaskDTO(any(Task.class));
     }
 
     @Test
@@ -798,10 +797,10 @@ class TaskServiceImplTest {
         TaskStatusUpdateRequest request = new TaskStatusUpdateRequest();
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.taskService.updateTaskStatus(null, request)
+                () -> taskService.updateTaskStatus(null, request)
         );
         assertEquals("Task ID cannot be null", exception.getMessage());
-        verify(this.taskRepository, never()).findById(any());
+        verify(taskRepository, never()).findById(any());
     }
 
     @Test
@@ -809,13 +808,13 @@ class TaskServiceImplTest {
     void updateTaskStatus_nullRequest_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.taskService.updateTaskStatus(1L, null)
+                () -> taskService.updateTaskStatus(1L, null)
         );
         assertEquals("Task Status Update request cannot be null", exception.getMessage());
 
-        verify(this.taskRepository, never()).findById(anyLong());
-        verify(this.taskRepository, never()).save(any());
-        verify(this.taskMapper, never()).toTaskDTO(any());
+        verify(taskRepository, never()).findById(anyLong());
+        verify(taskRepository, never()).save(any());
+        verify(taskMapper, never()).toTaskDTO(any());
     }
 
     @Test
@@ -832,18 +831,18 @@ class TaskServiceImplTest {
 
         List<Task> childTasks = Arrays.asList(child1, child2);
 
-        when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(parentTask));
-        when(this.taskRepository.findByParentTaskId(taskId)).thenReturn(childTasks);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(parentTask));
+        when(taskRepository.findByParentTaskId(taskId)).thenReturn(childTasks);
 
-        TaskServiceImpl taskServiceSpy = spy(this.taskService);
+        TaskServiceImpl taskServiceSpy = spy(taskService);
         doNothing().when(taskServiceSpy).validateChildTaskCompletion(taskId);
         taskServiceSpy.deleteTask(taskId);
 
-        verify(this.taskRepository).findById(taskId);
-        verify(this.taskRepository).findByParentTaskId(taskId);
-        verify(this.taskRepository).delete(child1);
-        verify(this.taskRepository).delete(child2);
-        verify(this.taskRepository).delete(parentTask);
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository).findByParentTaskId(taskId);
+        verify(taskRepository).delete(child1);
+        verify(taskRepository).delete(child2);
+        verify(taskRepository).delete(parentTask);
     }
 
     @Test
@@ -854,15 +853,15 @@ class TaskServiceImplTest {
         Task parentTask = this.setupTask(null, taskId, null);
         parentTask.setTitle("Parent task");
 
-        when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(parentTask));
-        when(this.taskRepository.findByParentTaskId(taskId)).thenReturn(Collections.emptyList());
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(parentTask));
+        when(taskRepository.findByParentTaskId(taskId)).thenReturn(Collections.emptyList());
 
-        doNothing().when(this.taskRepository).delete(any(Task.class));
-        this.taskService.deleteTask(taskId);
+        doNothing().when(taskRepository).delete(any(Task.class));
+        taskService.deleteTask(taskId);
 
-        verify(this.taskRepository).findById(taskId);
-        verify(this.taskRepository).findByParentTaskId(taskId);
-        verify(this.taskRepository).delete(any(Task.class));
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository).findByParentTaskId(taskId);
+        verify(taskRepository).delete(any(Task.class));
     }
 
     @Test
@@ -881,20 +880,20 @@ class TaskServiceImplTest {
 
         List<Task> childTasks = Arrays.asList(child1, child2);
 
-        when(this.taskRepository.findById(taskId)).thenReturn(Optional.of(parentTask));
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(parentTask));
 
-        when(this.taskRepository.findByParentTaskId(taskId)).thenReturn(childTasks);
+        when(taskRepository.findByParentTaskId(taskId)).thenReturn(childTasks);
 
         CannotProceedException exception = assertThrows(
                 CannotProceedException.class,
-                () -> this.taskService.deleteTask(taskId)
+                () -> taskService.deleteTask(taskId)
         );
 
         assertEquals("Cannot proceed with task " + taskId + " while child tasks are not completed.", exception.getMessage());
 
-        verify(this.taskRepository).findById(taskId);
-        verify(this.taskRepository, times(2)).findByParentTaskId(taskId);
-        verify(this.taskRepository, never()).delete(any(Task.class));
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository, times(2)).findByParentTaskId(taskId);
+        verify(taskRepository, never()).delete(any(Task.class));
     }
 
     @Test
@@ -905,18 +904,18 @@ class TaskServiceImplTest {
         Task parenTask = this.setupTask(null, 2L, null);
         parenTask.setTitle("parent Task");
 
-        when(this.taskRepository.findById(taskId)).thenReturn(Optional.empty());
+        when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> this.taskService.deleteTask(taskId)
+                () -> taskService.deleteTask(taskId)
         );
 
         assertEquals("Task not found with ID: " + taskId, exception.getMessage());
 
-        verify(this.taskRepository).findById(taskId);
-        verify(this.taskRepository, never()).findByParentTaskId(taskId);
-        verify(this.taskRepository, never()).delete(any(Task.class));
+        verify(taskRepository).findById(taskId);
+        verify(taskRepository, never()).findByParentTaskId(taskId);
+        verify(taskRepository, never()).delete(any(Task.class));
     }
 
     @Test
@@ -924,10 +923,10 @@ class TaskServiceImplTest {
     void deleteTask_nullTaskId_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.taskService.deleteTask(null)
+                () -> taskService.deleteTask(null)
         );
         assertEquals("Task ID cannot be null", exception.getMessage());
-        verify(this.taskRepository, never()).findById(any());
+        verify(taskRepository, never()).findById(any());
     }
 
     @Test
@@ -935,11 +934,11 @@ class TaskServiceImplTest {
     void getAllTasks_nullSortBy_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.taskService.getAllTasks(1L, "search", 0, 10, null, "asc")
+                () -> taskService.getAllTasks(1L, "search", 0, 10, null, "asc")
         );
         assertEquals("Sort by field cannot be null", exception.getMessage());
-        verify(this.taskRepository, never()).findParentTasks(any(), any(), any());
-        verify(this.taskMapper, never()).toTaskDTO(any());
+        verify(taskRepository, never()).findParentTasks(any(), any(), any());
+        verify(taskMapper, never()).toTaskDTO(any());
     }
 
     @Test
@@ -947,10 +946,10 @@ class TaskServiceImplTest {
     void getAllTasks_nullDirection_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.taskService.getAllTasks(1L, "search", 0, 10, "title", null)
+                () -> taskService.getAllTasks(1L, "search", 0, 10, "title", null)
         );
         assertEquals("Sort direction cannot be null", exception.getMessage());
-        verify(this.taskRepository, never()).findParentTasks(any(), any(), any());
-        verify(this.taskMapper, never()).toTaskDTO(any());
+        verify(taskRepository, never()).findParentTasks(any(), any(), any());
+        verify(taskMapper, never()).toTaskDTO(any());
     }
 }

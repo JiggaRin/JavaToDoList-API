@@ -50,9 +50,9 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalArgumentException("Task request cannot be null");
         }
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = this.userService.getUserByUsername(username);
+        User user = userService.getUserByUsername(username);
 
-        if (!this.taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)) {
+        if (!taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)) {
             throw new ResourceConflictException("Title must be unique for the user");
         }
 
@@ -60,12 +60,12 @@ public class TaskServiceImpl implements TaskService {
             throw new DuplicateCategoryException("A task cannot have duplicate categories.");
         }
 
-        Task task = this.taskMapper.fromTaskRequest(request);
+        Task task = taskMapper.fromTaskRequest(request);
         task.setOwner(user);
         task.setStatus(request.getStatus() != null ? request.getStatus() : Status.TODO);
 
         if (request.getParentId() != null) {
-            Task parentTask = this.taskRepository.findById(request.getParentId())
+            Task parentTask = taskRepository.findById(request.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Parent Task not found with ID: " + request.getParentId()));
             if (!parentTask.getOwner().getId().equals(user.getId())) {
                 throw new AccessDeniedException("Parent task must belong to the authenticated user.");
@@ -78,11 +78,11 @@ public class TaskServiceImpl implements TaskService {
         Set<Category> categories = fetchOrCreateCategories(request.getCategoryNames());
         task.setCategories(categories);
 
-        Task savedTask = this.taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
         if (savedTask == null) {
             throw new IllegalStateException("Failed to save task");
         }
-        return this.taskMapper.toTaskDTO(savedTask);
+        return taskMapper.toTaskDTO(savedTask);
     }
 
     @Override
@@ -91,10 +91,10 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalArgumentException("Task ID cannot be null");
         }
 
-        Task task = this.taskRepository.findById(taskId)
+        Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        return this.taskMapper.toTaskDTO(task);
+        return taskMapper.toTaskDTO(task);
     }
 
     @Override
@@ -107,10 +107,10 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalArgumentException("Task request cannot be null");
         }
 
-        Task existedTask = this.taskRepository.findById(taskId)
+        Task existedTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        if (!this.taskRepository.isTitleUnique(request.getTitle(), existedTask.getOwner().getId(), taskId)) {
+        if (!taskRepository.isTitleUnique(request.getTitle(), existedTask.getOwner().getId(), taskId)) {
             throw new ResourceConflictException("Title must be unique for the user.");
         }
 
@@ -123,13 +123,13 @@ public class TaskServiceImpl implements TaskService {
         }
 
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = this.userService.getUserByUsername(username);
+        User user = userService.getUserByUsername(username);
 
-        this.taskMapper.updateTaskFromRequest(request, existedTask);
+        taskMapper.updateTaskFromRequest(request, existedTask);
         existedTask.setOwner(user);
 
         if (request.getParentId() != null) {
-            Task parentTask = this.taskRepository.findById(request.getParentId())
+            Task parentTask = taskRepository.findById(request.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Parent Task not found with ID: " + request.getParentId()));
             if (!parentTask.getOwner().getId().equals(user.getId())) {
                 throw new AccessDeniedException("Parent task must belong to the authenticated user.");
@@ -142,11 +142,11 @@ public class TaskServiceImpl implements TaskService {
         Set<Category> categories = fetchOrCreateCategories(request.getCategoryNames());
         existedTask.setCategories(categories);
 
-        Task savedTask = this.taskRepository.save(existedTask);
+        Task savedTask = taskRepository.save(existedTask);
         if (savedTask == null) {
             throw new IllegalStateException("Failed to save task with ID: " + taskId);
         }
-        return this.taskMapper.toTaskDTO(savedTask);
+        return taskMapper.toTaskDTO(savedTask);
     }
 
     @Override
@@ -159,7 +159,7 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalArgumentException("Task Status Update request cannot be null");
         }
 
-        Task existedTask = this.taskRepository.findById(taskId)
+        Task existedTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
         if (request.getStatus() == Status.DONE) {
@@ -168,7 +168,7 @@ public class TaskServiceImpl implements TaskService {
 
         existedTask.setStatus(request.getStatus());
 
-        return this.taskMapper.toTaskDTO(this.taskRepository.save(existedTask));
+        return taskMapper.toTaskDTO(taskRepository.save(existedTask));
     }
 
     @Override
@@ -177,20 +177,20 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalArgumentException("Task ID cannot be null");
         }
 
-        Task existingTask = this.taskRepository.findById(taskId)
+        Task existingTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        List<Task> childTasks = this.taskRepository.findByParentTaskId(taskId);
+        List<Task> childTasks = taskRepository.findByParentTaskId(taskId);
 
         if (!childTasks.isEmpty()) {
             validateChildTaskCompletion(existingTask.getId());
         }
 
         for (Task childTask : childTasks) {
-            this.taskRepository.delete(childTask);
+            taskRepository.delete(childTask);
         }
 
-        this.taskRepository.delete(existingTask);
+        taskRepository.delete(existingTask);
     }
 
     @Override
@@ -205,7 +205,7 @@ public class TaskServiceImpl implements TaskService {
 
         Page<Task> tasks = getTasksAccordingAdditionalParams(userId, search, page, size, sortBy, direction);
 
-        return tasks.map(this.taskMapper::toTaskDTO);
+        return tasks.map(taskMapper::toTaskDTO);
     }
 
     @Override
@@ -213,11 +213,11 @@ public class TaskServiceImpl implements TaskService {
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
-        User user = this.userService.getUserById(userId);
-        List<Task> tasks = this.taskRepository.findByOwner(user);
+        User user = userService.getUserById(userId);
+        List<Task> tasks = taskRepository.findByOwner(user);
 
         return tasks.stream()
-                .map(this.taskMapper::toTaskDTO)
+                .map(taskMapper::toTaskDTO)
                 .collect(Collectors.toList());
     }
 
@@ -231,7 +231,7 @@ public class TaskServiceImpl implements TaskService {
             throw new IllegalArgumentException("Username cannot be null");
         }
 
-        Task task = this.taskRepository.findById(taskId)
+        Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
         return task.getOwner().getUsername().equals(username);
@@ -243,8 +243,8 @@ public class TaskServiceImpl implements TaskService {
         }
 
         return categoryNames.stream()
-                .map(name -> this.categoryRepository.findByName(name)
-                .orElseGet(() -> this.categoryRepository.save(new Category(name))))
+                .map(name -> categoryRepository.findByName(name)
+                .orElseGet(() -> categoryRepository.save(new Category(name))))
                 .collect(Collectors.toSet());
     }
 
@@ -258,7 +258,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     void validateChildTaskCompletion(Long taskId) {
-        List<Task> childTasks = this.taskRepository.findByParentTaskId(taskId);
+        List<Task> childTasks = taskRepository.findByParentTaskId(taskId);
 
         boolean hasIncompleteChildTasks = childTasks.stream()
                 .anyMatch(task -> task.getStatus() != Status.DONE);
@@ -272,6 +272,6 @@ public class TaskServiceImpl implements TaskService {
         Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         PageRequest pageable = PageRequest.of(page, size, sort);
 
-        return this.taskRepository.findParentTasks(userId, search, pageable);
+        return taskRepository.findParentTasks(userId, search, pageable);
     }
 }

@@ -1,14 +1,13 @@
 package todo.list.todo_list.integration.repository;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +44,7 @@ class RefreshTokenRepositoryIntegrationTest {
         Instant expiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(604800);
         RefreshToken refreshToken = this.setupRefreshToken("valid-token", this.username, expiration);
 
-        RefreshToken savedRefreshToken = this.refreshTokenRepository.save(refreshToken);
+        RefreshToken savedRefreshToken = refreshTokenRepository.save(refreshToken);
 
         assertNotNull(savedRefreshToken.getId());
         assertEquals("valid-token", savedRefreshToken.getRefreshToken());
@@ -59,9 +58,9 @@ class RefreshTokenRepositoryIntegrationTest {
         Instant expiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(604800);
         RefreshToken refreshToken = this.setupRefreshToken("valid-token", this.username, expiration);
 
-        RefreshToken savedRefreshToken = this.refreshTokenRepository.save(refreshToken);
+        RefreshToken savedRefreshToken = refreshTokenRepository.save(refreshToken);
 
-        Optional<RefreshToken> result = this.refreshTokenRepository.findByRefreshToken(savedRefreshToken.getRefreshToken());
+        Optional<RefreshToken> result = refreshTokenRepository.findByRefreshToken(savedRefreshToken.getRefreshToken());
 
         assertTrue(result.isPresent());
         assertEquals("valid-token", result.get().getRefreshToken());
@@ -72,7 +71,7 @@ class RefreshTokenRepositoryIntegrationTest {
     @Test
     @DisplayName("Find by Refresh Token with token which is not existed")
     void findByRefreshToken_notExists_returnsEmpty() {
-        Optional<RefreshToken> result = this.refreshTokenRepository.findByRefreshToken("non-existed-token");
+        Optional<RefreshToken> result = refreshTokenRepository.findByRefreshToken("non-existed-token");
 
         assertTrue(result.isEmpty());
     }
@@ -83,9 +82,9 @@ class RefreshTokenRepositoryIntegrationTest {
         Instant expiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(604800);
         RefreshToken refreshToken = this.setupRefreshToken("valid-token", this.username, expiration);
 
-        RefreshToken savedRefreshToken = this.refreshTokenRepository.save(refreshToken);
+        RefreshToken savedRefreshToken = refreshTokenRepository.save(refreshToken);
 
-        Optional<RefreshToken> result = this.refreshTokenRepository.findByUsername(savedRefreshToken.getUsername());
+        Optional<RefreshToken> result = refreshTokenRepository.findByUsername(savedRefreshToken.getUsername());
 
         assertTrue(result.isPresent());
         assertEquals("valid-token", result.get().getRefreshToken());
@@ -96,7 +95,7 @@ class RefreshTokenRepositoryIntegrationTest {
     @Test
     @DisplayName("Find by Username with username which is not existed")
     void findByUsername_notExists_returnsEmpty() {
-        Optional<RefreshToken> result = this.refreshTokenRepository.findByUsername("non-existed-username");
+        Optional<RefreshToken> result = refreshTokenRepository.findByUsername("non-existed-username");
 
         assertTrue(result.isEmpty());
     }
@@ -106,10 +105,10 @@ class RefreshTokenRepositoryIntegrationTest {
     void deleteByUsername_validData_successfulDelete() {
         Instant expiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(604800);
         RefreshToken refreshToken = this.setupRefreshToken("valid-token", this.username, expiration);
-        this.refreshTokenRepository.save(refreshToken);
+        refreshTokenRepository.save(refreshToken);
 
-        this.refreshTokenRepository.deleteByUsername(this.username);
-        Optional<RefreshToken> result = this.refreshTokenRepository.findByUsername(this.username);
+        refreshTokenRepository.deleteByUsername(this.username);
+        Optional<RefreshToken> result = refreshTokenRepository.findByUsername(this.username);
 
         assertTrue(result.isEmpty());
     }
@@ -121,7 +120,7 @@ class RefreshTokenRepositoryIntegrationTest {
         RefreshToken refreshToken = this.setupRefreshToken(null, this.username, expiration);
 
         try {
-            this.refreshTokenRepository.saveAndFlush(refreshToken);
+            refreshTokenRepository.saveAndFlush(refreshToken);
             fail("Expected DataIntegrityViolationException but none was thrown");
         } catch (DataIntegrityViolationException e) {
             assertTrue(true);
@@ -135,7 +134,7 @@ class RefreshTokenRepositoryIntegrationTest {
         RefreshToken refreshToken = this.setupRefreshToken("valid-token", null, expiration);
 
         try {
-            this.refreshTokenRepository.saveAndFlush(refreshToken);
+            refreshTokenRepository.saveAndFlush(refreshToken);
             fail("Expected DataIntegrityViolationException but none was thrown");
         } catch (DataIntegrityViolationException e) {
             assertTrue(true);
@@ -148,7 +147,7 @@ class RefreshTokenRepositoryIntegrationTest {
         RefreshToken refreshToken = this.setupRefreshToken("valid-token", this.username, null);
 
         try {
-            this.refreshTokenRepository.saveAndFlush(refreshToken);
+            refreshTokenRepository.saveAndFlush(refreshToken);
             fail("Expected DataIntegrityViolationException but none was thrown");
         } catch (DataIntegrityViolationException e) {
             assertTrue(true);
@@ -162,10 +161,10 @@ class RefreshTokenRepositoryIntegrationTest {
         RefreshToken refreshToken = this.setupRefreshToken("valid-token", this.username, expiration);
         RefreshToken duplicateRefreshToken = this.setupRefreshToken("valid-token", "testuser2", expiration);
 
-        this.refreshTokenRepository.save(refreshToken);
+        refreshTokenRepository.save(refreshToken);
 
         try {
-            this.refreshTokenRepository.saveAndFlush(duplicateRefreshToken);
+            refreshTokenRepository.saveAndFlush(duplicateRefreshToken);
             fail("Expected DataIntegrityViolationException but none was thrown");
         } catch (DataIntegrityViolationException e) {
             assertTrue(true);
@@ -179,10 +178,10 @@ class RefreshTokenRepositoryIntegrationTest {
         RefreshToken refreshToken = this.setupRefreshToken("token1", this.username, expiration);
         RefreshToken duplicateUsernameToken = this.setupRefreshToken("token2", this.username, expiration);
 
-        this.refreshTokenRepository.save(refreshToken);
+        refreshTokenRepository.save(refreshToken);
 
         try {
-            this.refreshTokenRepository.saveAndFlush(duplicateUsernameToken);
+            refreshTokenRepository.saveAndFlush(duplicateUsernameToken);
             fail("Expected DataIntegrityViolationException but none was thrown");
         } catch (DataIntegrityViolationException e) {
             assertTrue(true);

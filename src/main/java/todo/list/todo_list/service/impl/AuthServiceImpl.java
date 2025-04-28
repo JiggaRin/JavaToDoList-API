@@ -38,45 +38,45 @@ public class AuthServiceImpl implements AuthService {
         if (authRequest == null) {
             throw new IllegalArgumentException("Auth request cannot be null");
         }
-        User user = this.userService.getUserByUsername(authRequest.getUsername());
+        User user = userService.getUserByUsername(authRequest.getUsername());
 
-        if (!this.passwordEncoder.matches(authRequest.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(authRequest.getPassword(), user.getPassword())) {
             throw new BadCredentialsException("Invalid username or password");
         }
 
         List<String> roles = user.getAuthorities().stream()
                 .map(authority -> authority.getAuthority())
                 .collect(Collectors.toList());
-        String accessToken = this.jwtUtil.generateAccessToken(authRequest.getUsername(), roles);
-        String refreshToken = this.refreshTokenService.createRefreshToken(authRequest.getUsername()).getRefreshToken();
+        String accessToken = jwtUtil.generateAccessToken(authRequest.getUsername(), roles);
+        String refreshToken = refreshTokenService.createRefreshToken(authRequest.getUsername()).getRefreshToken();
 
         return new AuthResponse(accessToken, refreshToken);
     }
 
     @Override
     public AuthResponse refreshToken(String refreshToken) {
-        if (refreshToken == null || !this.jwtUtil.validateToken(refreshToken)) {
+        if (refreshToken == null || !jwtUtil.validateToken(refreshToken)) {
             throw new IllegalArgumentException("Invalid or expired refresh token");
         }
 
-        String username = this.jwtUtil.extractUsername(refreshToken);
-        User user = this.userService.getUserByUsername(username);
+        String username = jwtUtil.extractUsername(refreshToken);
+        User user = userService.getUserByUsername(username);
         List<String> roles = user.getAuthorities().stream()
                 .map(authority -> authority.getAuthority())
                 .collect(Collectors.toList());
 
-        String newAccessToken = this.jwtUtil.generateAccessToken(username, roles);
+        String newAccessToken = jwtUtil.generateAccessToken(username, roles);
         log.info("Refreshed access token for user {}", username);
         return new AuthResponse(newAccessToken, refreshToken);
     }
 
     @Override
     public void logout(String refreshToken) {
-        if (refreshToken == null || !this.jwtUtil.validateToken(refreshToken)) {
+        if (refreshToken == null || !jwtUtil.validateToken(refreshToken)) {
             throw new IllegalArgumentException("Invalid refresh token");
         }
-        String username = this.jwtUtil.extractUsername(refreshToken);
-        this.refreshTokenService.deleteByUsername(username);
+        String username = jwtUtil.extractUsername(refreshToken);
+        refreshTokenService.deleteByUsername(username);
         log.info("User {} logged out successfully", username);
     }
 }

@@ -1,26 +1,25 @@
 package todo.list.todo_list.service.impl;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Optional;
-
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -105,28 +104,28 @@ class UserServiceImplTest {
         User user = this.setupUser(this.username, email, Role.USER);
         user.setFirstName("Test");
 
-        when(this.userRepository.existsByUsername(this.username, null)).thenReturn(false);
-        when(this.userRepository.existsByEmail(email, null)).thenReturn(false);
-        when(this.userMapper.fromRegistrationRequest(request)).thenReturn(user);
-        when(this.passwordEncoder.encode(password)).thenReturn(encodedPassword);
-        when(this.userRepository.save(any(User.class))).thenAnswer(invocation -> {
+        when(userRepository.existsByUsername(this.username, null)).thenReturn(false);
+        when(userRepository.existsByEmail(email, null)).thenReturn(false);
+        when(userMapper.fromRegistrationRequest(request)).thenReturn(user);
+        when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User savedUser = invocation.getArgument(0);
             savedUser.setPassword(encodedPassword);
             return savedUser;
         });
 
-        RegistrationResponse response = this.userService.registerUser(request);
+        RegistrationResponse response = userService.registerUser(request);
 
         assertNotNull(response);
         assertEquals("User registered successfully", response.getMessage());
         assertEquals(this.username, response.getUsername());
         assertEquals(email, response.getEmail());
 
-        verify(this.userRepository).existsByUsername(this.username, null);
-        verify(this.userRepository).existsByEmail(email, null);
-        verify(this.userMapper).fromRegistrationRequest(request);
-        verify(this.passwordEncoder).encode(password);
-        verify(this.userRepository).save(user);
+        verify(userRepository).existsByUsername(this.username, null);
+        verify(userRepository).existsByEmail(email, null);
+        verify(userMapper).fromRegistrationRequest(request);
+        verify(passwordEncoder).encode(password);
+        verify(userRepository).save(user);
     }
 
     @Test
@@ -136,18 +135,18 @@ class UserServiceImplTest {
         String password = "Password123!";
         RegistrationRequest request = this.setupRegistationRequest(this.username, email, password);
 
-        when(this.userRepository.existsByUsername(this.username, null)).thenReturn(true);
+        when(userRepository.existsByUsername(this.username, null)).thenReturn(true);
 
         UserAlreadyExistsException exception = assertThrows(
                 UserAlreadyExistsException.class,
-                () -> this.userService.registerUser(request)
+                () -> userService.registerUser(request)
         );
         assertEquals("Username is already taken!", exception.getMessage());
-        verify(this.userRepository).existsByUsername(this.username, null);
-        verify(this.userRepository, never()).existsByEmail(anyString(), any());
-        verify(this.userMapper, never()).fromRegistrationRequest(any());
-        verify(this.passwordEncoder, never()).encode(anyString());
-        verify(this.userRepository, never()).save(any());
+        verify(userRepository).existsByUsername(this.username, null);
+        verify(userRepository, never()).existsByEmail(anyString(), any());
+        verify(userMapper, never()).fromRegistrationRequest(any());
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any());
     }
 
     @Test
@@ -157,20 +156,20 @@ class UserServiceImplTest {
         String password = "Password123!";
         RegistrationRequest request = this.setupRegistationRequest(this.username, email, password);
 
-        when(this.userRepository.existsByUsername(this.username, null)).thenReturn(false);
-        when(this.userRepository.existsByEmail(email, null)).thenReturn(true);
+        when(userRepository.existsByUsername(this.username, null)).thenReturn(false);
+        when(userRepository.existsByEmail(email, null)).thenReturn(true);
 
         UserAlreadyExistsException exception = assertThrows(
                 UserAlreadyExistsException.class,
-                () -> this.userService.registerUser(request)
+                () -> userService.registerUser(request)
         );
         assertEquals("Email is already in use!", exception.getMessage());
 
-        verify(this.userRepository).existsByUsername(this.username, null);
-        verify(this.userRepository).existsByEmail(email, null);
-        verify(this.userMapper, never()).fromRegistrationRequest(any());
-        verify(this.passwordEncoder, never()).encode(anyString());
-        verify(this.userRepository, never()).save(any());
+        verify(userRepository).existsByUsername(this.username, null);
+        verify(userRepository).existsByEmail(email, null);
+        verify(userMapper, never()).fromRegistrationRequest(any());
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any());
     }
 
     @Test
@@ -178,15 +177,15 @@ class UserServiceImplTest {
     void registerUser_nullRequest_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.userService.registerUser(null)
+                () -> userService.registerUser(null)
         );
         assertEquals("Registration request cannot be null", exception.getMessage());
 
-        verify(this.userRepository, never()).existsByUsername(anyString(), anyLong());
-        verify(this.userRepository, never()).existsByEmail(anyString(), anyLong());
-        verify(this.userMapper, never()).fromRegistrationRequest(any());
-        verify(this.passwordEncoder, never()).encode(anyString());
-        verify(this.userRepository, never()).save(any());
+        verify(userRepository, never()).existsByUsername(anyString(), anyLong());
+        verify(userRepository, never()).existsByEmail(anyString(), anyLong());
+        verify(userMapper, never()).fromRegistrationRequest(any());
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any());
     }
 
     @Test
@@ -207,28 +206,28 @@ class UserServiceImplTest {
             target.setFirstName(request.getFirstName());
             target.setLastName(request.getLastName());
             return null;
-        }).when(this.userMapper).updateUserFromRequest(request, user);
+        }).when(userMapper).updateUserFromRequest(request, user);
 
         UserDTO userDTO = new UserDTO();
         userDTO.setFirstName("NewFirst");
         userDTO.setLastName("NewLast");
         userDTO.setEmail(newEmail);
 
-        when(this.userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(this.userRepository.existsByEmail(newEmail, userId)).thenReturn(false);
-        when(this.userRepository.save(user)).thenReturn(user);
-        when(this.userMapper.toUserDTO(user)).thenReturn(userDTO);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.existsByEmail(newEmail, userId)).thenReturn(false);
+        when(userRepository.save(user)).thenReturn(user);
+        when(userMapper.toUserDTO(user)).thenReturn(userDTO);
 
-        UserDTO response = this.userService.updateUser(userId, request);
+        UserDTO response = userService.updateUser(userId, request);
 
         assertNotNull(response);
         assertSame(userDTO, response);
 
-        verify(this.userRepository).findById(userId);
-        verify(this.userRepository).existsByEmail(newEmail, userId);
-        verify(this.userMapper).updateUserFromRequest(request, user);
-        verify(this.userRepository).save(user);
-        verify(this.userMapper).toUserDTO(user);
+        verify(userRepository).findById(userId);
+        verify(userRepository).existsByEmail(newEmail, userId);
+        verify(userMapper).updateUserFromRequest(request, user);
+        verify(userRepository).save(user);
+        verify(userMapper).toUserDTO(user);
     }
 
     @Test
@@ -237,18 +236,18 @@ class UserServiceImplTest {
         Long userId = 1L;
         UpdateRequest request = this.setupUpdateRequest("new@example.com");
 
-        when(this.userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> this.userService.updateUser(userId, request)
+                () -> userService.updateUser(userId, request)
         );
         assertEquals("User not found", exception.getMessage());
 
-        verify(this.userRepository).findById(userId);
-        verify(this.userRepository, never()).existsByEmail(anyString(), anyLong());
-        verify(this.userMapper, never()).updateUserFromRequest(any(), any());
-        verify(this.userRepository, never()).save(any());
+        verify(userRepository).findById(userId);
+        verify(userRepository, never()).existsByEmail(anyString(), anyLong());
+        verify(userMapper, never()).updateUserFromRequest(any(), any());
+        verify(userRepository, never()).save(any());
     }
 
     @Test
@@ -262,19 +261,19 @@ class UserServiceImplTest {
         User user = this.setupUser("testuser", "old@example.com", null);
         user.setId(userId);
 
-        when(this.userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(this.userRepository.existsByEmail(newEmail, userId)).thenReturn(true);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.existsByEmail(newEmail, userId)).thenReturn(true);
 
         UserAlreadyExistsException exception = assertThrows(
                 UserAlreadyExistsException.class,
-                () -> this.userService.updateUser(userId, request)
+                () -> userService.updateUser(userId, request)
         );
 
         assertEquals("Email is already in use!", exception.getMessage());
-        verify(this.userRepository).findById(userId);
-        verify(this.userRepository).existsByEmail(newEmail, userId);
-        verify(this.userMapper, never()).updateUserFromRequest(any(), any());
-        verify(this.userRepository, never()).save(any());
+        verify(userRepository).findById(userId);
+        verify(userRepository).existsByEmail(newEmail, userId);
+        verify(userMapper, never()).updateUserFromRequest(any(), any());
+        verify(userRepository, never()).save(any());
     }
 
     @Test
@@ -283,10 +282,10 @@ class UserServiceImplTest {
         UpdateRequest request = new UpdateRequest();
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.userService.updateUser(null, request)
+                () -> userService.updateUser(null, request)
         );
         assertEquals("User ID cannot be null", exception.getMessage());
-        verify(this.userRepository, never()).findById(any());
+        verify(userRepository, never()).findById(any());
     }
 
     @Test
@@ -294,15 +293,15 @@ class UserServiceImplTest {
     void updateUser_nullRequest_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.userService.updateUser(1L, null)
+                () -> userService.updateUser(1L, null)
         );
         assertEquals("Update request cannot be null", exception.getMessage());
 
-        verify(this.userRepository, never()).findById(anyLong());
-        verify(this.userRepository, never()).existsByEmail(anyString(), anyLong());
-        verify(this.userMapper, never()).updateUserFromRequest(any(), any());
-        verify(this.userRepository, never()).save(any());
-        verify(this.userMapper, never()).toUserDTO(any());
+        verify(userRepository, never()).findById(anyLong());
+        verify(userRepository, never()).existsByEmail(anyString(), anyLong());
+        verify(userMapper, never()).updateUserFromRequest(any(), any());
+        verify(userRepository, never()).save(any());
+        verify(userMapper, never()).toUserDTO(any());
     }
 
     @Test
@@ -318,19 +317,19 @@ class UserServiceImplTest {
         user.setId(userId);
         user.setPassword(oldHashedPassword);
 
-        when(this.userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(this.passwordEncoder.matches(oldPassword, oldHashedPassword)).thenReturn(true);
-        when(this.passwordEncoder.encode(request.getNewPassword())).thenReturn("encodedPass");
-        when(this.userRepository.save(user)).thenReturn(user);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(oldPassword, oldHashedPassword)).thenReturn(true);
+        when(passwordEncoder.encode(request.getNewPassword())).thenReturn("encodedPass");
+        when(userRepository.save(user)).thenReturn(user);
 
-        this.userService.changePassword(userId, request);
+        userService.changePassword(userId, request);
 
-        InOrder inOrder = inOrder(this.userRepository, this.refreshTokenRepository, this.passwordEncoder);
-        inOrder.verify(this.userRepository).findById(userId);
-        inOrder.verify(this.passwordEncoder).matches(oldPassword, oldHashedPassword);
-        inOrder.verify(this.passwordEncoder).encode(newPassword);
-        inOrder.verify(this.userRepository).save(user);
-        inOrder.verify(this.refreshTokenRepository).deleteByUsername(this.username);
+        InOrder inOrder = inOrder(userRepository, refreshTokenRepository, passwordEncoder);
+        inOrder.verify(userRepository).findById(userId);
+        inOrder.verify(passwordEncoder).matches(oldPassword, oldHashedPassword);
+        inOrder.verify(passwordEncoder).encode(newPassword);
+        inOrder.verify(userRepository).save(user);
+        inOrder.verify(refreshTokenRepository).deleteByUsername(this.username);
     }
 
     @Test
@@ -344,20 +343,20 @@ class UserServiceImplTest {
         user.setId(userId);
         user.setPassword("oldHashedPass");
 
-        when(this.userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(this.passwordEncoder.matches(request.getOldPassword(), user.getPassword())).thenReturn(false);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(request.getOldPassword(), user.getPassword())).thenReturn(false);
 
         CannotProceedException exception = assertThrows(
                 CannotProceedException.class,
-                () -> this.userService.changePassword(userId, request)
+                () -> userService.changePassword(userId, request)
         );
         assertEquals("Old password is incorrect", exception.getMessage());
 
-        verify(this.userRepository).findById(userId);
-        verify(this.passwordEncoder).matches(request.getOldPassword(), user.getPassword());
-        verify(this.passwordEncoder, never()).encode(newPassword);
-        verify(this.userRepository, never()).save(user);
-        verify(this.refreshTokenRepository, never()).deleteByUsername(this.username);
+        verify(userRepository).findById(userId);
+        verify(passwordEncoder).matches(request.getOldPassword(), user.getPassword());
+        verify(passwordEncoder, never()).encode(newPassword);
+        verify(userRepository, never()).save(user);
+        verify(refreshTokenRepository, never()).deleteByUsername(this.username);
     }
 
     @Test
@@ -366,10 +365,10 @@ class UserServiceImplTest {
         ChangePasswordRequest request = new ChangePasswordRequest();
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.userService.changePassword(null, request)
+                () -> userService.changePassword(null, request)
         );
         assertEquals("User ID cannot be null", exception.getMessage());
-        verify(this.userRepository, never()).findById(any());
+        verify(userRepository, never()).findById(any());
     }
 
     @Test
@@ -377,15 +376,15 @@ class UserServiceImplTest {
     void changePassword_nullRequest_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.userService.changePassword(1L, null)
+                () -> userService.changePassword(1L, null)
         );
         assertEquals("Change Password request cannot be null", exception.getMessage());
 
-        verify(this.userRepository, never()).findById(anyLong());
-        verify(this.passwordEncoder, never()).matches(anyString(), anyString());
-        verify(this.passwordEncoder, never()).encode(anyString());
-        verify(this.userRepository, never()).save(any());
-        verify(this.refreshTokenRepository, never()).deleteByUsername(anyString());
+        verify(userRepository, never()).findById(anyLong());
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any());
+        verify(refreshTokenRepository, never()).deleteByUsername(anyString());
     }
 
     @Test
@@ -393,12 +392,12 @@ class UserServiceImplTest {
     void getUserById_nullUserId_throwsEsception() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.userService.getUserById(null)
+                () -> userService.getUserById(null)
         );
 
         assertEquals("User ID cannot be null", exception.getMessage());
 
-        verify(this.userRepository, never()).findById(anyLong());
+        verify(userRepository, never()).findById(anyLong());
     }
 
     @Test
@@ -406,11 +405,11 @@ class UserServiceImplTest {
     void getUserByUsername_nullUsername_throwsExcepton() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.userService.getUserByUsername(null)
+                () -> userService.getUserByUsername(null)
         );
 
         assertEquals("Username cannot be null", exception.getMessage());
 
-        verify(this.userRepository, never()).findByUsername(anyString());
+        verify(userRepository, never()).findByUsername(anyString());
     }
 }

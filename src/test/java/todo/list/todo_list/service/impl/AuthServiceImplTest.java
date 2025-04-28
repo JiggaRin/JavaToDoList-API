@@ -1,25 +1,24 @@
 package todo.list.todo_list.service.impl;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.List;
-
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -82,20 +81,20 @@ class AuthServiceImplTest {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setRefreshToken("refresh-token-value");
 
-        when(this.userService.getUserByUsername(this.username)).thenReturn(user);
-        when(this.passwordEncoder.matches("Password123!", "encodedPassword")).thenReturn(true);
-        when(this.jwtUtil.generateAccessToken(this.username, List.of("ROLE_USER"))).thenReturn("access-token-value");
-        when(this.refreshTokenService.createRefreshToken(this.username)).thenReturn(refreshToken);
+        when(userService.getUserByUsername(this.username)).thenReturn(user);
+        when(passwordEncoder.matches("Password123!", "encodedPassword")).thenReturn(true);
+        when(jwtUtil.generateAccessToken(this.username, List.of("ROLE_USER"))).thenReturn("access-token-value");
+        when(refreshTokenService.createRefreshToken(this.username)).thenReturn(refreshToken);
 
-        AuthResponse response = this.authService.authenticate(request);
+        AuthResponse response = authService.authenticate(request);
 
         assertNotNull(response);
         assertEquals("access-token-value", response.getAccessToken());
         assertEquals("refresh-token-value", response.getRefreshToken());
-        verify(this.userService).getUserByUsername(this.username);
-        verify(this.passwordEncoder).matches("Password123!", "encodedPassword");
-        verify(this.jwtUtil).generateAccessToken(this.username, List.of("ROLE_USER"));
-        verify(this.refreshTokenService).createRefreshToken(this.username);
+        verify(userService).getUserByUsername(this.username);
+        verify(passwordEncoder).matches("Password123!", "encodedPassword");
+        verify(jwtUtil).generateAccessToken(this.username, List.of("ROLE_USER"));
+        verify(refreshTokenService).createRefreshToken(this.username);
     }
 
     @Test
@@ -103,17 +102,17 @@ class AuthServiceImplTest {
     void authenticate_userNotFound_throwsException() {
         AuthRequest request = this.setupAuthRequest("unknownuser", "Password123!");
 
-        when(this.userService.getUserByUsername("unknownuser"))
+        when(userService.getUserByUsername("unknownuser"))
                 .thenThrow(new UsernameNotFoundException("User not found"));
 
         UsernameNotFoundException exception = assertThrows(
                 UsernameNotFoundException.class,
-                () -> this.authService.authenticate(request)
+                () -> authService.authenticate(request)
         );
         assertEquals("User not found", exception.getMessage());
-        verify(this.userService).getUserByUsername("unknownuser");
-        verify(this.jwtUtil, never()).generateAccessToken(anyString(), anyList());
-        verify(this.refreshTokenService, never()).createRefreshToken(anyString());
+        verify(userService).getUserByUsername("unknownuser");
+        verify(jwtUtil, never()).generateAccessToken(anyString(), anyList());
+        verify(refreshTokenService, never()).createRefreshToken(anyString());
     }
 
     @Test
@@ -123,18 +122,18 @@ class AuthServiceImplTest {
 
         User user = this.setupUser(this.username, "encodedPassword");
 
-        when(this.userService.getUserByUsername(this.username)).thenReturn(user);
-        when(this.passwordEncoder.matches("WrongPassword", "encodedPassword")).thenReturn(false);
+        when(userService.getUserByUsername(this.username)).thenReturn(user);
+        when(passwordEncoder.matches("WrongPassword", "encodedPassword")).thenReturn(false);
 
         BadCredentialsException exception = assertThrows(
                 BadCredentialsException.class,
-                () -> this.authService.authenticate(request)
+                () -> authService.authenticate(request)
         );
         assertEquals("Invalid username or password", exception.getMessage());
-        verify(this.userService).getUserByUsername(this.username);
-        verify(this.passwordEncoder).matches("WrongPassword", "encodedPassword");
-        verify(this.jwtUtil, never()).generateAccessToken(anyString(), anyList());
-        verify(this.refreshTokenService, never()).createRefreshToken(anyString());
+        verify(userService).getUserByUsername(this.username);
+        verify(passwordEncoder).matches("WrongPassword", "encodedPassword");
+        verify(jwtUtil, never()).generateAccessToken(anyString(), anyList());
+        verify(refreshTokenService, never()).createRefreshToken(anyString());
     }
 
     @Test
@@ -142,14 +141,14 @@ class AuthServiceImplTest {
     void authenticate_nullRequest_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.authService.authenticate(null)
+                () -> authService.authenticate(null)
         );
         assertEquals("Auth request cannot be null", exception.getMessage());
 
-        verify(this.userService, never()).getUserByUsername(anyString());
-        verify(this.passwordEncoder, never()).matches(anyString(), anyString());
-        verify(this.jwtUtil, never()).generateAccessToken(anyString(), any());
-        verify(this.refreshTokenService, never()).createRefreshToken(anyString());
+        verify(userService, never()).getUserByUsername(anyString());
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+        verify(jwtUtil, never()).generateAccessToken(anyString(), any());
+        verify(refreshTokenService, never()).createRefreshToken(anyString());
     }
 
     @Test
@@ -159,27 +158,27 @@ class AuthServiceImplTest {
         RefreshToken token = new RefreshToken();
         token.setRefreshToken(refreshToken);
 
-        when(this.jwtUtil.validateToken(refreshToken)).thenReturn(true);
-        when(this.jwtUtil.extractUsername(refreshToken)).thenReturn(this.username);
+        when(jwtUtil.validateToken(refreshToken)).thenReturn(true);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn(this.username);
 
         User user = this.setupUser(this.username, null);
 
-        when(this.userService.getUserByUsername(this.username)).thenReturn(user);
-        when(this.jwtUtil.generateAccessToken(this.username, List.of("ROLE_USER"))).thenReturn("new-access-token");
+        when(userService.getUserByUsername(this.username)).thenReturn(user);
+        when(jwtUtil.generateAccessToken(this.username, List.of("ROLE_USER"))).thenReturn("new-access-token");
 
-        AuthResponse response = this.authService.refreshToken(refreshToken);
+        AuthResponse response = authService.refreshToken(refreshToken);
         assertNotNull(response);
 
-        InOrder inOrder = inOrder(this.jwtUtil, this.userService);
-        inOrder.verify(this.jwtUtil).validateToken(refreshToken);
-        inOrder.verify(this.jwtUtil).extractUsername(refreshToken);
-        inOrder.verify(this.userService).getUserByUsername(user.getUsername());
-        inOrder.verify(this.jwtUtil).generateAccessToken(user.getUsername(), List.of("ROLE_USER"));
+        InOrder inOrder = inOrder(jwtUtil, userService);
+        inOrder.verify(jwtUtil).validateToken(refreshToken);
+        inOrder.verify(jwtUtil).extractUsername(refreshToken);
+        inOrder.verify(userService).getUserByUsername(user.getUsername());
+        inOrder.verify(jwtUtil).generateAccessToken(user.getUsername(), List.of("ROLE_USER"));
 
-        verify(this.jwtUtil).validateToken(refreshToken);
-        verify(this.jwtUtil).extractUsername(refreshToken);
-        verify(this.userService).getUserByUsername(user.getUsername());
-        verify(this.jwtUtil).generateAccessToken(user.getUsername(), List.of("ROLE_USER"));
+        verify(jwtUtil).validateToken(refreshToken);
+        verify(jwtUtil).extractUsername(refreshToken);
+        verify(userService).getUserByUsername(user.getUsername());
+        verify(jwtUtil).generateAccessToken(user.getUsername(), List.of("ROLE_USER"));
     }
 
     @Test
@@ -187,20 +186,20 @@ class AuthServiceImplTest {
     void refreshToken_invalidRefreshToken_throwsException() {
         String refreshToken = "invalid-refresh-token";
 
-        when(this.jwtUtil.validateToken(refreshToken))
+        when(jwtUtil.validateToken(refreshToken))
                 .thenThrow(new IllegalArgumentException("Invalid or expired refresh token"));
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.authService.refreshToken(refreshToken)
+                () -> authService.refreshToken(refreshToken)
         );
 
         assertEquals("Invalid or expired refresh token", exception.getMessage());
 
-        verify(this.jwtUtil).validateToken(refreshToken);
-        verify(this.jwtUtil, never()).extractUsername(anyString());
-        verify(this.userService, never()).getUserByUsername(anyString());
-        verify(this.jwtUtil, never()).generateAccessToken(anyString(), List.of(anyString()));
+        verify(jwtUtil).validateToken(refreshToken);
+        verify(jwtUtil, never()).extractUsername(anyString());
+        verify(userService, never()).getUserByUsername(anyString());
+        verify(jwtUtil, never()).generateAccessToken(anyString(), List.of(anyString()));
     }
 
     @Test
@@ -210,23 +209,23 @@ class AuthServiceImplTest {
         RefreshToken token = new RefreshToken();
         token.setRefreshToken(refreshToken);
 
-        when(this.jwtUtil.validateToken(refreshToken)).thenReturn(true);
-        when(this.jwtUtil.extractUsername(refreshToken)).thenReturn(this.username);
+        when(jwtUtil.validateToken(refreshToken)).thenReturn(true);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn(this.username);
 
-        when(this.userService.getUserByUsername(this.username))
+        when(userService.getUserByUsername(this.username))
                 .thenThrow(new ResourceNotFoundException("User not found with username: " + this.username));
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> this.authService.refreshToken(refreshToken)
+                () -> authService.refreshToken(refreshToken)
         );
 
         assertEquals("User not found with username: " + this.username, exception.getMessage());
 
-        verify(this.jwtUtil).validateToken(refreshToken);
-        verify(this.jwtUtil).extractUsername(refreshToken);
-        verify(this.userService).getUserByUsername(this.username);
-        verify(this.jwtUtil, never()).generateAccessToken(anyString(), List.of(anyString()));
+        verify(jwtUtil).validateToken(refreshToken);
+        verify(jwtUtil).extractUsername(refreshToken);
+        verify(userService).getUserByUsername(this.username);
+        verify(jwtUtil, never()).generateAccessToken(anyString(), List.of(anyString()));
     }
 
     @Test
@@ -234,20 +233,20 @@ class AuthServiceImplTest {
     void logout_deletesRefreshTokenByUsername() {
         String refreshToken = "valid-refresh-token";
 
-        when(this.jwtUtil.validateToken(refreshToken)).thenReturn(true);
-        when(this.jwtUtil.extractUsername(refreshToken)).thenReturn(this.username);
+        when(jwtUtil.validateToken(refreshToken)).thenReturn(true);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn(this.username);
 
-        doNothing().when(this.refreshTokenService).deleteByUsername(this.username);
+        doNothing().when(refreshTokenService).deleteByUsername(this.username);
 
-        this.authService.logout(refreshToken);
+        authService.logout(refreshToken);
 
-        InOrder inOrder = inOrder(this.jwtUtil, this.refreshTokenService);
-        inOrder.verify(this.jwtUtil).validateToken(refreshToken);
-        inOrder.verify(this.jwtUtil).extractUsername(refreshToken);
-        inOrder.verify(this.refreshTokenService).deleteByUsername(this.username);
+        InOrder inOrder = inOrder(jwtUtil, refreshTokenService);
+        inOrder.verify(jwtUtil).validateToken(refreshToken);
+        inOrder.verify(jwtUtil).extractUsername(refreshToken);
+        inOrder.verify(refreshTokenService).deleteByUsername(this.username);
 
-        verify(this.jwtUtil).extractUsername(refreshToken);
-        verify(this.refreshTokenService).deleteByUsername(this.username);
+        verify(jwtUtil).extractUsername(refreshToken);
+        verify(refreshTokenService).deleteByUsername(this.username);
     }
 
     @Test
@@ -255,15 +254,15 @@ class AuthServiceImplTest {
     void logout_invalidToken_throwsException() {
         String refreshToken = "invalid-refresh-token";
 
-        when(this.jwtUtil.validateToken(refreshToken)).thenReturn(false);
+        when(jwtUtil.validateToken(refreshToken)).thenReturn(false);
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> this.authService.logout(refreshToken)
+                () -> authService.logout(refreshToken)
         );
         assertEquals("Invalid refresh token", exception.getMessage());
-        verify(this.jwtUtil).validateToken(refreshToken);
-        verify(this.jwtUtil, never()).extractUsername(refreshToken);
-        verify(this.refreshTokenService, never()).deleteByUsername(anyString());
+        verify(jwtUtil).validateToken(refreshToken);
+        verify(jwtUtil, never()).extractUsername(refreshToken);
+        verify(refreshTokenService, never()).deleteByUsername(anyString());
     }
 }
