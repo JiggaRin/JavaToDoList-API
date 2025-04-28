@@ -28,6 +28,12 @@ public class TaskDTO {
     public TaskDTO() {
     }
 
+    public TaskDTO(Long taskId, String title, Status status) {
+        this.id = taskId;
+        this.title = title;
+        this.status = status;
+    }
+
     public Long getId() {
         return id;
     }

@@ -33,11 +33,8 @@ class UserRepositoryIntegrationTest {
     private UserRepository userRepository;
 
     private User setupUser(String username, String email) {
-        User user = new User();
-        user.setUsername(username);
+        User user = new User(username, "password", Role.USER);
         user.setEmail(email);
-        user.setPassword("password");
-        user.setRole(Role.USER);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 

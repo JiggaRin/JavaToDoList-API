@@ -55,9 +55,7 @@ class RefreshTokenServiceImplTest {
     }
 
     private User setupUser(String username, Role role) {
-        User user = new User();
-        user.setUsername(username);
-        user.setRole(role);
+        User user = new User(username, null, role);
 
         return user;
     }

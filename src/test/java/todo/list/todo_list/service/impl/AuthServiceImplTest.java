@@ -63,10 +63,7 @@ class AuthServiceImplTest {
     }
 
     private User setupUser(String username, String password) {
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(password);
-        user.setRole(Role.USER);
+        User user = new User(username, password, Role.USER);
 
         return user;
     }

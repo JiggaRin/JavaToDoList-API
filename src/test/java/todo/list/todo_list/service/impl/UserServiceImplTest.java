@@ -42,6 +42,10 @@ class UserServiceImplTest {
 
     private final String username = "testuser";
 
+    private final String email = "test@example.com";
+
+    private final String password = "Password123!";
+
     @Mock
     private UserRepository userRepository;
 
@@ -67,10 +71,8 @@ class UserServiceImplTest {
     }
 
     private User setupUser(String username, String email, Role role) {
-        User user = new User();
-        user.setUsername(username);
+        User user = new User(username, null, role);
         user.setEmail(email);
-        user.setRole(role);
 
         return user;
     }
@@ -93,10 +95,8 @@ class UserServiceImplTest {
     @Test
     @DisplayName("Register User with valid data returns RegistrationResponse")
     void registerUser_successfulRegistration() {
-        String email = "test@example.com";
-        String password = "Password123!";
         String encodedPassword = "encodedPassword";
-        RegistrationRequest request = this.setupRegistationRequest(this.username, email, password);
+        RegistrationRequest request = this.setupRegistationRequest(this.username, this.email, this.password);
         request.setFirstName("Test");
         request.setLastName("User");
         request.setRole(Role.USER);
@@ -131,9 +131,7 @@ class UserServiceImplTest {
     @Test
     @DisplayName("Register User with this.username which is already existed throws UserAlreadyExistsException")
     void registerUser_duplicateUsername_throwsException() {
-        String email = "test@example.com";
-        String password = "Password123!";
-        RegistrationRequest request = this.setupRegistationRequest(this.username, email, password);
+        RegistrationRequest request = this.setupRegistationRequest(this.username, this.email, this.password);
 
         when(userRepository.existsByUsername(this.username, null)).thenReturn(true);
 
@@ -152,12 +150,10 @@ class UserServiceImplTest {
     @Test
     @DisplayName("Register User with email which is already in use by another user throws UserAlreadyExistsException")
     void registerUser_duplicateEmail_throwsException() {
-        String email = "test@example.com";
-        String password = "Password123!";
-        RegistrationRequest request = this.setupRegistationRequest(this.username, email, password);
+        RegistrationRequest request = this.setupRegistationRequest(this.username, this.email, this.password);
 
         when(userRepository.existsByUsername(this.username, null)).thenReturn(false);
-        when(userRepository.existsByEmail(email, null)).thenReturn(true);
+        when(userRepository.existsByEmail(this.email, null)).thenReturn(true);
 
         UserAlreadyExistsException exception = assertThrows(
                 UserAlreadyExistsException.class,
@@ -166,7 +162,7 @@ class UserServiceImplTest {
         assertEquals("Email is already in use!", exception.getMessage());
 
         verify(userRepository).existsByUsername(this.username, null);
-        verify(userRepository).existsByEmail(email, null);
+        verify(userRepository).existsByEmail(this.email, null);
         verify(userMapper, never()).fromRegistrationRequest(any());
         verify(passwordEncoder, never()).encode(anyString());
         verify(userRepository, never()).save(any());
@@ -197,7 +193,7 @@ class UserServiceImplTest {
         request.setFirstName("NewFirst");
         request.setLastName("NewLast");
 
-        User user = this.setupUser("testuser", "old@example.com", Role.USER);
+        User user = this.setupUser(this.username, "old@example.com", Role.USER);
         user.setId(userId);
 
         doAnswer(invocation -> {
@@ -258,7 +254,7 @@ class UserServiceImplTest {
         UpdateRequest request = this.setupUpdateRequest(newEmail);
         request.setEmail(newEmail);
 
-        User user = this.setupUser("testuser", "old@example.com", null);
+        User user = this.setupUser(this.username, "old@example.com", null);
         user.setId(userId);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -308,7 +304,7 @@ class UserServiceImplTest {
     @DisplayName("Change Password with valid data returns void")
     void changePassword_successfulChange() {
         Long userId = 1L;
-        String oldPassword = "Password123!";
+        String oldPassword = this.password;
         String newPassword = "Password123!!";
         String oldHashedPassword = "oldHashedPass";
         ChangePasswordRequest request = this.setupChangePasswordRequest(oldPassword, newPassword);
@@ -337,7 +333,7 @@ class UserServiceImplTest {
     void changePassword_wrongOldPassword_throwsException() {
         Long userId = 1L;
         String newPassword = "Password123!!";
-        ChangePasswordRequest request = this.setupChangePasswordRequest("Password123!", newPassword);
+        ChangePasswordRequest request = this.setupChangePasswordRequest(this.password, newPassword);
 
         User user = this.setupUser(this.username, null, null);
         user.setId(userId);

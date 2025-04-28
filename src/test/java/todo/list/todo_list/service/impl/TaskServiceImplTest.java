@@ -71,36 +71,26 @@ class TaskServiceImplTest {
     private TaskServiceImpl taskService;
 
     private TaskRequest setupTaskRequest(String title, List<String> categoryNames, Long parentTaskId) {
-        TaskRequest request = new TaskRequest();
-        request.setTitle(title);
-        request.setCategoryNames(categoryNames);
-        request.setParentId(parentTaskId);
+        TaskRequest request = new TaskRequest(title, categoryNames, parentTaskId);
 
         return request;
     }
 
     private User setupUser(Long userId, String username) {
-        User user = new User();
+        User user = new User(username, null, null);
         user.setId(userId);
-        user.setUsername(username);
 
         return user;
     }
 
     private Task setupTask(User owner, Long taskId, Status status) {
-        Task task = new Task();
-        task.setOwner(owner);
-        task.setId(taskId);
-        task.setStatus(status);
+        Task task = new Task(taskId, owner, status);
 
         return task;
     }
 
     private TaskDTO setupTaskDTO(Long taskId, Status status, String title) {
-        TaskDTO dto = new TaskDTO();
-        dto.setId(taskId);
-        dto.setStatus(status);
-        dto.setTitle(title);
+        TaskDTO dto = new TaskDTO(taskId, title, status);
 
         return dto;
     }

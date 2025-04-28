@@ -64,6 +64,15 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks = new ArrayList<>();
 
+    public User() {
+    }
+
+    public User(String username, String password, Role role) {
+        this.username = username;
+        this.password = password;
+        this.role = role;
+    }
+
     public Long getId() {
         return this.id;
     }
@@ -168,5 +177,4 @@ public class User implements UserDetails {
         task.setOwner(null);
     }
 
-    
 }

@@ -67,6 +67,12 @@ public class Task {
 
     public Task() {}
 
+    public Task(Long taskId, User owner, Status status) {
+        this.id = taskId;
+        this.owner = owner;
+        this.status = status;
+    }
+
     public Task(Long id, Task parentTask, User owner, String title, String description, Status status, LocalDateTime createdAt, LocalDateTime updatedAt, List<Task> subTasks) {
         this.id = id;
         this.parentTask = parentTask;

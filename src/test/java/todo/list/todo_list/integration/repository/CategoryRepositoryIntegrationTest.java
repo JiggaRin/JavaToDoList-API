@@ -50,10 +50,8 @@ class CategoryRepositoryIntegrationTest {
     }
 
     private Task setupTask(String title, Set<Category> categories, User owner) {
-        Task task = new Task();
+        Task task = new Task(null, owner, Status.TODO);
         task.setTitle(title);
-        task.setStatus(Status.TODO);
-        task.setOwner(owner);
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
         task.setCategories(categories);
@@ -62,10 +60,8 @@ class CategoryRepositoryIntegrationTest {
     }
 
     private User setupUser(String username) {
-        User user = new User();
-        user.setUsername(username);
+        User user = new User(username, "Password123!", null);
         user.setEmail(username + "@example.com");
-        user.setPassword("password123");
 
         return user;
     }

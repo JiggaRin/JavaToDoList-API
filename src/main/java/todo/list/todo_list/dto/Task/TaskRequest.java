@@ -28,6 +28,15 @@ public class TaskRequest {
     @Size(min = 1, message = "At least one category name must be provided")
     private List<@Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "Each category name must contain only letters, numbers, and underscores") String> categoryNames;
 
+    public TaskRequest() {
+    }
+
+    public TaskRequest(String title, List<String> categoryNames, Long parentId) {
+        this.title = title;
+        this.categoryNames = categoryNames;
+        this.parentId = parentId;
+    }
+
     public Long getParentId() {
         return this.parentId;
     }
