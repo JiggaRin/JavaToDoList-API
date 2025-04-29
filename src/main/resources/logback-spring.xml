@@ -1,0 +1,140 @@
+<configuration>
+    <!-- Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender for AuthController -->
+    <appender name="AUTH_CONTROLLER_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/auth/auth-controller.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender for AuthService -->
+    <appender name="AUTH_SERVICE_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/auth/auth-service.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender for CategoryController -->
+    <appender name="CATEGORY_CONTROLLER_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/category/category-controller.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender for CategoryService -->
+    <appender name="CATEGORY_SERVICE_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/category/category-service.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender for TaskController -->
+    <appender name="TASK_CONTROLLER_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/task/task-controller.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender for TaskService -->
+    <appender name="TASK_SERVICE_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/task/task-service.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender for UserController -->
+    <appender name="USER_CONTROLLER_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/user/user-controller.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender for UserService -->
+    <appender name="USER_SERVICE_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/user/user-service.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- General File Appender for Other Logs -->
+    <appender name="APP_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/app.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Logger for AuthController -->
+    <logger name="todo.list.todo_list.controller.AuthController" level="DEBUG" additivity="false">
+        <!-- <appender-ref ref="CONSOLE" /> -->
+        <appender-ref ref="AUTH_CONTROLLER_FILE" />
+    </logger>
+
+    <!-- Logger for AuthService -->
+    <logger name="todo.list.todo_list.service.impl.AuthServiceImpl" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="AUTH_SERVICE_FILE" />
+    </logger>
+
+    <!-- Logger for CategoryController -->
+    <logger name="todo.list.todo_list.controller.CategoryController" level="DEBUG" additivity="false">
+        <!-- <appender-ref ref="CONSOLE" /> -->
+        <appender-ref ref="CATEGORY_CONTROLLER_FILE" />
+    </logger>
+
+    <!-- Logger for CategoryService -->
+    <logger name="todo.list.todo_list.service.impl.CategoryServiceImpl" level="DEBUG" additivity="false">
+        <!-- <appender-ref ref="CONSOLE" /> -->
+        <appender-ref ref="CATEGORY_SERVICE_FILE" />
+    </logger>
+
+    <!-- Logger for TaskController -->
+    <logger name="todo.list.todo_list.controller.TaskController" level="DEBUG" additivity="false">
+        <!-- <appender-ref ref="CONSOLE" /> -->
+        <appender-ref ref="TASK_CONTROLLER_FILE" />
+    </logger>
+
+    <!-- Logger for TaskService -->
+    <logger name="todo.list.todo_list.service.impl.TaskServiceImpl" level="DEBUG" additivity="false">
+        <!-- <appender-ref ref="CONSOLE" /> -->
+        <appender-ref ref="TASK_SERVICE_FILE" />
+    </logger>
+
+    <!-- Logger for UserController -->
+    <logger name="todo.list.todo_list.controller.UserController" level="DEBUG" additivity="false">
+        <!-- <appender-ref ref="CONSOLE" /> -->
+        <appender-ref ref="USER_CONTROLLER_FILE" />
+    </logger>
+
+    <!-- Logger for UserService -->
+    <logger name="todo.list.todo_list.service.impl.UserServiceImpl" level="DEBUG" additivity="false">
+        <!-- <appender-ref ref="CONSOLE" /> -->
+        <appender-ref ref="USER_SERVICE_FILE" />
+    </logger>
+
+    <!-- Logger for Other Project Classes -->
+    <logger name="todo.list.todo_list" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="APP_FILE" />
+    </logger>
+
+    <!-- Root Logger (for Spring, Hibernate, etc.) -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="APP_FILE" />
+    </root>
+</configuration>
