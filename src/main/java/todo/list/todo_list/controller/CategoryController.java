@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,7 +26,6 @@ import todo.list.todo_list.service.CategoryService;
 public class CategoryController {
 
     private static final Logger log = LoggerFactory.getLogger(CategoryController.class);
-    @Autowired
     private final CategoryService categoryService;
 
     public CategoryController(CategoryService categoryService) {
@@ -39,7 +37,7 @@ public class CategoryController {
     public ResponseEntity<List<CategoryDTO>> getAllCategories() {
         log.debug("Received request to get All Categories");
          try {
-            ResponseEntity<List<CategoryDTO>> categoriesList = this.getAllCategoriesList();
+            ResponseEntity<List<CategoryDTO>> categoriesList = this.gettingAllCategoriesList();
 
             return categoriesList;
         } catch (Exception e) {
@@ -105,7 +103,7 @@ public class CategoryController {
         }
     }
 
-    private ResponseEntity<List<CategoryDTO>> getAllCategoriesList() {
+    private ResponseEntity<List<CategoryDTO>> gettingAllCategoriesList() {
         List<CategoryDTO> categories = categoryService.getAllCategories();
         log.info("Successfully Retreived List of Categories");
 
