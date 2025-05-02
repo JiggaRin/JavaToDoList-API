@@ -1,5 +1,6 @@
 package todo.list.todo_list.service.impl;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,48 +36,73 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse authenticate(AuthRequest authRequest) {
-        if (authRequest == null) {
-            throw new IllegalArgumentException("Auth request cannot be null");
-        }
-        User user = userService.getUserByUsername(authRequest.getUsername());
+        log.debug("Received authentication request");
+        validateAuthRequest(authRequest);
 
-        if (!passwordEncoder.matches(authRequest.getPassword(), user.getPassword())) {
-            throw new BadCredentialsException("Invalid username or password");
-        }
+        String username = authRequest.getUsername();
+        log.debug("Authenticating user: {}", username);
+        User authenticatedUser = userService.getUserByUsername(username);
 
-        List<String> roles = user.getAuthorities().stream()
-                .map(authority -> authority.getAuthority())
-                .collect(Collectors.toList());
-        String accessToken = jwtUtil.generateAccessToken(authRequest.getUsername(), roles);
-        String refreshToken = refreshTokenService.createRefreshToken(authRequest.getUsername()).getRefreshToken();
+        validatePassword(authRequest.getPassword(), authenticatedUser.getPassword());
+        List<String> userRoles = extractRoles(authenticatedUser);
+        String accessToken = jwtUtil.generateAccessToken(username, userRoles);
+        String refreshToken = refreshTokenService.createRefreshToken(username).getRefreshToken();
+        log.info("Successfully authenticated user: {}", username);
 
         return new AuthResponse(accessToken, refreshToken);
     }
 
     @Override
     public AuthResponse refreshToken(String refreshToken) {
-        if (refreshToken == null || !jwtUtil.validateToken(refreshToken)) {
-            throw new IllegalArgumentException("Invalid or expired refresh token");
-        }
+        log.debug("Refreshing token: {}", refreshToken != null ? refreshToken.substring(0, Math.min(10, refreshToken.length())) + "..." : null);
+        validateRefreshToken(refreshToken);
 
         String username = jwtUtil.extractUsername(refreshToken);
-        User user = userService.getUserByUsername(username);
-        List<String> roles = user.getAuthorities().stream()
-                .map(authority -> authority.getAuthority())
-                .collect(Collectors.toList());
+        User authenticatedUser = userService.getUserByUsername(username);
+        List<String> userRoles = extractRoles(authenticatedUser);
+        String newAccessToken = jwtUtil.generateAccessToken(username, userRoles);
+        log.info("Successfully refreshed access token for user: {}", username);
 
-        String newAccessToken = jwtUtil.generateAccessToken(username, roles);
-        log.info("Refreshed access token for user {}", username);
         return new AuthResponse(newAccessToken, refreshToken);
     }
 
     @Override
     public void logout(String refreshToken) {
-        if (refreshToken == null || !jwtUtil.validateToken(refreshToken)) {
-            throw new IllegalArgumentException("Invalid refresh token");
-        }
+        log.debug("Logging out with token: {}", refreshToken != null ? refreshToken.substring(0, Math.min(10, refreshToken.length())) + "..." : null);
+        validateRefreshToken(refreshToken);
+        
         String username = jwtUtil.extractUsername(refreshToken);
         refreshTokenService.deleteByUsername(username);
-        log.info("User {} logged out successfully", username);
+        log.info("Successfully logged out user: {}", username);
+    }
+
+    private void validateAuthRequest(AuthRequest authRequest) {
+        if (authRequest == null) {
+            throw new IllegalArgumentException("Auth request cannot be null");
+        }
+    }
+
+    private void validatePassword(String rawPassword, String encodedPassword) {
+        if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
+            throw new BadCredentialsException("Invalid username or password");
+        }
+    }
+
+    private void validateRefreshToken(String refreshToken) {
+        if (refreshToken == null) {
+            throw new IllegalArgumentException("Refresh token cannot be null");
+        }
+        if (!jwtUtil.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("Invalid or expired refresh token");
+        }
+    }
+
+    private List<String> extractRoles(User user) {
+        if (user == null || user.getAuthorities() == null) {
+            return Collections.emptyList();
+        }
+        return user.getAuthorities().stream()
+                .map(authority -> authority.getAuthority())
+                .collect(Collectors.toList());
     }
 }

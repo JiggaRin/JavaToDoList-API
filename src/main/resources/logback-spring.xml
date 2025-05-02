@@ -78,6 +78,13 @@
         </encoder>
     </appender>
 
+    <appender name="GLOBAL_EXCEPTION_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/global-exceptions.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
     <!-- Logger for AuthController -->
     <logger name="todo.list.todo_list.controller.AuthController" level="DEBUG" additivity="false">
         <!-- <appender-ref ref="CONSOLE" /> -->
@@ -130,6 +137,12 @@
     <logger name="todo.list.todo_list" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE" />
         <appender-ref ref="APP_FILE" />
+    </logger>
+
+    <!-- Logger for Global Exception File-->
+    <logger name="todo.list.todo_list.exception.GlobalExceptionHandler" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="GLOBAL_EXCEPTION_FILE" />
     </logger>
 
     <!-- Root Logger (for Spring, Hibernate, etc.) -->
