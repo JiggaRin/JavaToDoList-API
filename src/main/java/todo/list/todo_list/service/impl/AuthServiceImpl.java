@@ -1,7 +1,11 @@
 package todo.list.todo_list.service.impl;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -22,6 +26,10 @@ import todo.list.todo_list.service.UserService;
 public class AuthServiceImpl implements AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
+    private static final int MIN_USERNAME_LENGTH = 3;
+    private static final int MAX_LOGIN_ATTEMPTS = 3;
+    private static final long LOGIN_ATTEMPT_WINDOW_SECONDS = 60;
+    private static final Map<String, List<Long>> LOGIN_ATTEMPTS = new ConcurrentHashMap<>();
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
     private final UserService userService;
@@ -41,9 +49,16 @@ public class AuthServiceImpl implements AuthService {
 
         String username = authRequest.getUsername();
         log.debug("Authenticating user: {}", username);
-        User authenticatedUser = userService.getUserByUsername(username);
 
+        if (username.length() < MIN_USERNAME_LENGTH) {
+            log.warn("Short username detected: {}", username);
+        }
+
+        trackLoginAttempt(username);
+
+        User authenticatedUser = userService.getUserByUsername(username);
         validatePassword(authRequest.getPassword(), authenticatedUser.getPassword());
+
         List<String> userRoles = extractRoles(authenticatedUser);
         String accessToken = jwtUtil.generateAccessToken(username, userRoles);
         String refreshToken = refreshTokenService.createRefreshToken(username).getRefreshToken();
@@ -58,6 +73,10 @@ public class AuthServiceImpl implements AuthService {
         validateRefreshToken(refreshToken);
 
         String username = jwtUtil.extractUsername(refreshToken);
+        if (username.length() < MIN_USERNAME_LENGTH) {
+            log.warn("Short username detected during token refresh: {}", username);
+        }
+
         User authenticatedUser = userService.getUserByUsername(username);
         List<String> userRoles = extractRoles(authenticatedUser);
         String newAccessToken = jwtUtil.generateAccessToken(username, userRoles);
@@ -104,5 +123,18 @@ public class AuthServiceImpl implements AuthService {
         return user.getAuthorities().stream()
                 .map(authority -> authority.getAuthority())
                 .collect(Collectors.toList());
+    }
+
+    private void trackLoginAttempt(String username) {
+        long currentTime = Instant.now().getEpochSecond();
+        List<Long> attempts = LOGIN_ATTEMPTS.computeIfAbsent(username, k -> new ArrayList<>());
+
+        attempts.removeIf(timestamp -> currentTime - timestamp > LOGIN_ATTEMPT_WINDOW_SECONDS);
+        
+        attempts.add(currentTime);
+        
+        if (attempts.size() > MAX_LOGIN_ATTEMPTS) {
+            log.warn("Frequent login attempts detected for user: {}, attempts: {}", username, attempts.size());
+        }
     }
 }
