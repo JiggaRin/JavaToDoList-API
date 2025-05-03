@@ -42,14 +42,10 @@ public class TaskController {
     public ResponseEntity<TaskDTO> createTask(@Valid @RequestBody TaskRequest taskRequest) {
         log.debug("Received Create Task request");
 
-        try {
-            ResponseEntity<TaskDTO> response = this.creatingTask(taskRequest);
+        TaskDTO createdTask = taskService.createTask(taskRequest);
+        log.info("Successfully created Task with taskID: {}", createdTask.getId());
 
-            return response;
-        } catch (Exception e) {
-            log.error("Create Task request failed", e);
-            throw e;
-        }
+        return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
     }
 
     @GetMapping("/{taskId}")
@@ -57,14 +53,10 @@ public class TaskController {
     public ResponseEntity<TaskDTO> getTaskById(@PathVariable Long taskId) {
         log.debug("Received Get Task request by taskID: {}", taskId);
 
-        try {
-            ResponseEntity<TaskDTO> response = this.gettingTask(taskId);
+        TaskDTO task = taskService.getTask(taskId);
+        log.info("Successfully got Task by taskID: {}", taskId);
 
-            return response;
-        } catch (Exception e) {
-            log.error("Get Task By taskID request failed", e);
-            throw e;
-        }
+        return new ResponseEntity<>(task, HttpStatus.OK);
     }
 
     @PutMapping("/{taskId}")
@@ -72,14 +64,10 @@ public class TaskController {
     public ResponseEntity<TaskDTO> updateTask(@PathVariable Long taskId, @Valid @RequestBody TaskRequest taskRequest) {
         log.debug("Received Update Task request by taskID: {}", taskId);
 
-        try {
-            ResponseEntity<TaskDTO> response = this.updatingTask(taskId, taskRequest);
+        TaskDTO task = taskService.updateTask(taskId, taskRequest);
+        log.info("Successfully updated Task by taskID: {}", taskId);
 
-            return response;
-        } catch (Exception e) {
-            log.error("Get Task By taskID request failed", e);
-            throw e;
-        }
+        return new ResponseEntity<>(task, HttpStatus.OK);
     }
 
     @DeleteMapping("/{taskId}")
@@ -87,14 +75,10 @@ public class TaskController {
     public ResponseEntity<Void> deleteTask(@PathVariable Long taskId) {
         log.debug("Received DELETE Task request by taskID: {}", taskId);
 
-        try {
-            ResponseEntity<Void> response = this.deletingTask(taskId);
+        taskService.deleteTask(taskId);
+        log.info("Successfully deleted Task by taskID: {}", taskId);
 
-            return response;
-        } catch (Exception e) {
-            log.error("Delete Task By taskID request failed", e);
-            throw e;
-        }
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @GetMapping("/all")
@@ -107,28 +91,21 @@ public class TaskController {
             @RequestParam(defaultValue = "asc") String direction) {
         log.debug("Received request to get All Tasks");
 
-        try {
-            ResponseEntity<Page<TaskDTO>> response = this.gettingAllTasks(search, page, size, sortBy, direction);
+        Page<TaskDTO> tasks = taskService.getAllTasks(null, search, page, size, sortBy, direction);
+        log.info("Successfully retreived all Tasks");
 
-            return response;
-        } catch (Exception e) {
-            log.error("Get All Tasks request failed", e);
-            throw e;
-        }
+        return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
     public ResponseEntity<List<TaskDTO>> getTasksByUser(@PathVariable Long userId) {
         log.debug("Received request to get All Tasks by userID: {}", userId);
-        try {
-            ResponseEntity<List<TaskDTO>> response = this.gettingTasksByUserId(userId);
 
-            return response;
-        } catch (Exception e) {
-            log.error("Get All Tasks request failed", e);
-            throw e;
-        }
+        List<TaskDTO> tasks = taskService.getTasksByUser(userId);
+        log.info("Successfully retreived all Tasks by userID: {}", userId);
+
+        return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 
     @GetMapping("/my-tasks")
@@ -142,15 +119,10 @@ public class TaskController {
             @RequestParam(defaultValue = "asc") String direction) {
         log.debug("Received request to get All User's Tasks");
 
-        try {
-            ResponseEntity<Page<TaskDTO>> response = this.gettingAllUserTasks(userDetails.getId(), search, page, size, sortBy, direction);
+        Page<TaskDTO> tasks = taskService.getAllTasks(userDetails.getId(), search, page, size, sortBy, direction);
+        log.info("Successfully retreived all User's Tasks");
 
-            return response;
-        } catch (Exception e) {
-            log.error("Get All User's Tasks request failed", e);
-            throw e;
-        }
-
+        return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 
     @PutMapping("/update-status/{taskId}")
@@ -158,66 +130,6 @@ public class TaskController {
     public ResponseEntity<TaskDTO> updateTaskStatus(@PathVariable Long taskId, @Valid @RequestBody TaskStatusUpdateRequest request) {
         log.debug("Received request to Update Task Status by taskID: {}", taskId);
 
-        try {
-            ResponseEntity<TaskDTO> response = this.updatingTaskStatus(taskId, request);
-
-            return response;
-        } catch (Exception e) {
-            log.error("Update Task Status request failed for taskID: {}", taskId, e);
-            throw e;
-        }
-    }
-
-    private ResponseEntity<TaskDTO> creatingTask(TaskRequest request) {
-        TaskDTO createdTask = taskService.createTask(request);
-        log.info("Successfully created Task with taskID: {}", createdTask.getId());
-
-        return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
-    }
-
-    private ResponseEntity<TaskDTO> gettingTask(Long taskId) {
-        TaskDTO task = taskService.getTask(taskId);
-        log.info("Successfully got Task by taskID: {}", taskId);
-
-        return new ResponseEntity<>(task, HttpStatus.OK);
-    }
-
-    private ResponseEntity<TaskDTO> updatingTask(Long taskId, TaskRequest taskRequest) {
-        TaskDTO task = taskService.updateTask(taskId, taskRequest);
-        log.info("Successfully updated Task by taskID: {}", taskId);
-
-        return new ResponseEntity<>(task, HttpStatus.OK);
-    }
-
-    private ResponseEntity<Void> deletingTask(Long taskId) {
-        taskService.deleteTask(taskId);
-        log.info("Successfully deleted Task by taskID: {}", taskId);
-
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    }
-
-    private ResponseEntity<Page<TaskDTO>> gettingAllTasks(String search, int page, int size, String sortBy, String direction) {
-        Page<TaskDTO> tasks = taskService.getAllTasks(null, search, page, size, sortBy, direction);
-        log.info("Successfully retreived all Tasks");
-
-        return new ResponseEntity<>(tasks, HttpStatus.OK);
-    }
-
-    private ResponseEntity<Page<TaskDTO>> gettingAllUserTasks(Long userId, String search, int page, int size, String sortBy, String direction) {
-        Page<TaskDTO> tasks = taskService.getAllTasks(userId, search, page, size, sortBy, direction);
-        log.info("Successfully retreived all User's Tasks");
-
-        return new ResponseEntity<>(tasks, HttpStatus.OK);
-    }
-
-    private ResponseEntity<List<TaskDTO>> gettingTasksByUserId(Long userId) {
-        List<TaskDTO> tasks = taskService.getTasksByUser(userId);
-        log.info("Successfully retreived all Tasks by userID: {}", userId);
-
-        return new ResponseEntity<>(tasks, HttpStatus.OK);
-    }
-
-    private ResponseEntity<TaskDTO> updatingTaskStatus(Long taskId, TaskStatusUpdateRequest request) {
         TaskDTO task = taskService.updateTaskStatus(taskId, request);
         log.info("Successfully updated Task Status for taskID: {}", taskId);
 

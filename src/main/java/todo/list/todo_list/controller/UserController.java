@@ -36,15 +36,11 @@ public class UserController {
             @Valid @RequestBody UpdateRequest updateRequest) {
 
         log.debug("Received Update request for userID: {}", userDetails.getId());
-        try {
-            ResponseEntity<UserDTO> response = this.updatingUser(userDetails, updateRequest);
 
-            return response;
-        } catch (Exception e) {
-            log.error("Update request failed for userID: {}", userDetails.getId(), e);
-            throw e;
-        }
+        UserDTO user = userService.updateUser(userDetails.getId(), updateRequest);
+        log.info("Successfully updated userID: {}", userDetails.getId());
 
+        return ResponseEntity.ok(user);
     }
 
     @PutMapping("/change-password")
@@ -53,24 +49,7 @@ public class UserController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
         log.debug("Received Change password request for userID: {}", userDetails.getId());
-        try {
-            ResponseEntity<String> response = this.changingPasswordAndClearContext(userDetails, changePasswordRequest);
 
-            return response;
-        } catch (Exception e) {
-            log.error("Change password request failed for userID: {}", userDetails.getId(), e);
-            throw e;
-        }
-    }
-
-    private ResponseEntity<UserDTO> updatingUser(CustomUserDetails userDetails, UpdateRequest updateRequest) {
-        UserDTO user = userService.updateUser(userDetails.getId(), updateRequest);
-        log.info("Successfully updated userID: {}", userDetails.getId());
-
-        return ResponseEntity.ok(user);
-    }
-
-    private ResponseEntity<String> changingPasswordAndClearContext(CustomUserDetails userDetails, ChangePasswordRequest changePasswordRequest) {
         userService.changePassword(userDetails.getId(), changePasswordRequest);
         SecurityContextHolder.clearContext();
         log.info("Successfully changed password and clear context for userID: {}", userDetails.getId());
