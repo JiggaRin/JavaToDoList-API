@@ -257,7 +257,7 @@ class AuthServiceImplTest {
                 IllegalArgumentException.class,
                 () -> authService.logout(refreshToken)
         );
-        assertEquals("Invalid refresh token", exception.getMessage());
+        assertEquals("Invalid or expired refresh token", exception.getMessage());
         verify(jwtUtil).validateToken(refreshToken);
         verify(jwtUtil, never()).extractUsername(refreshToken);
         verify(refreshTokenService, never()).deleteByUsername(anyString());

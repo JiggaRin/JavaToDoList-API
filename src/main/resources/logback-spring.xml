@@ -38,6 +38,14 @@
         </encoder>
     </appender>
 
+    <!-- File Appender for RefreshTokenService -->
+    <appender name="REFRESH_TOKEN_SERVICE_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/refresh-token/refresh-token-service.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
     <!-- File Appender for TaskController -->
     <appender name="TASK_CONTROLLER_FILE" class="ch.qos.logback.core.FileAppender">
         <file>logs/task/task-controller.log</file>
@@ -107,6 +115,12 @@
     <logger name="todo.list.todo_list.service.impl.CategoryServiceImpl" level="DEBUG" additivity="false">
         <!-- <appender-ref ref="CONSOLE" /> -->
         <appender-ref ref="CATEGORY_SERVICE_FILE" />
+    </logger>
+
+    <!-- Logger for RefreshTokenService -->
+    <logger name="todo.list.todo_list.service.impl.RefreshTokenServiceImpl" level="DEBUG" additivity="false">
+        <!-- <appender-ref ref="CONSOLE" /> -->
+        <appender-ref ref="REFRESH_TOKEN_SERVICE_FILE" />
     </logger>
 
     <!-- Logger for TaskController -->

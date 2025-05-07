@@ -238,7 +238,7 @@ class UserServiceImplTest {
                 ResourceNotFoundException.class,
                 () -> userService.updateUser(userId, request)
         );
-        assertEquals("User not found", exception.getMessage());
+        assertEquals("User not found with ID: " + userId, exception.getMessage());
 
         verify(userRepository).findById(userId);
         verify(userRepository, never()).existsByEmail(anyString(), anyLong());
