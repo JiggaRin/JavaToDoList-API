@@ -16,7 +16,6 @@ import todo.list.todo_list.service.RefreshTokenService;
 public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     private static final Logger log = LoggerFactory.getLogger(RefreshTokenServiceImpl.class);
-    private static final int MIN_USERNAME_LENGTH = 3;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtUtil jwtUtil;
 
@@ -26,13 +25,12 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     }
 
     @Override
+    @Transactional
     public RefreshToken createRefreshToken(String username) {
         log.debug("Received Create Refresh Token request for username: {}", username);
         validateUsername(username);
 
-        if (username.length() < MIN_USERNAME_LENGTH) {
-            log.warn("Short username detected: {}", username);
-        }
+        refreshTokenRepository.deleteByUsername(username);
 
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUsername(username);

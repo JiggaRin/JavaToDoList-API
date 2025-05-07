@@ -13,10 +13,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import jakarta.transaction.Transactional;
 import todo.list.todo_list.dto.Auth.AuthRequest;
 import todo.list.todo_list.dto.Auth.AuthResponse;
 import todo.list.todo_list.entity.User;
-import todo.list.todo_list.exception.BadCredentialsException;
+import todo.list.todo_list.exception.CannotProceedException;
 import todo.list.todo_list.security.JwtUtil;
 import todo.list.todo_list.service.AuthService;
 import todo.list.todo_list.service.RefreshTokenService;
@@ -43,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public AuthResponse authenticate(AuthRequest authRequest) {
         log.debug("Received authentication request");
         validateAuthRequest(authRequest);
@@ -60,6 +62,11 @@ public class AuthServiceImpl implements AuthService {
         validatePassword(authRequest.getPassword(), authenticatedUser.getPassword());
 
         List<String> userRoles = extractRoles(authenticatedUser);
+        if (userRoles.isEmpty()) {
+            log.warn("No roles assigned to user: {}", username);
+            throw new CannotProceedException("User has no assigned roles");
+        }
+
         String accessToken = jwtUtil.generateAccessToken(username, userRoles);
         String refreshToken = refreshTokenService.createRefreshToken(username).getRefreshToken();
         log.info("Successfully authenticated user: {}", username);
@@ -96,14 +103,17 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void validateAuthRequest(AuthRequest authRequest) {
-        if (authRequest == null) {
-            throw new IllegalArgumentException("Auth request cannot be null");
+        if (authRequest == null || authRequest.getUsername() == null || authRequest.getPassword() == null) {
+            throw new IllegalArgumentException("Authentication request or credentials cannot be null");
         }
     }
 
     private void validatePassword(String rawPassword, String encodedPassword) {
+        if (rawPassword == null || encodedPassword == null) {
+            throw new IllegalArgumentException("Password cannot be null");
+        }
         if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
-            throw new BadCredentialsException("Invalid username or password");
+            throw new CannotProceedException("Invalid password");
         }
     }
 

@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InOrder;
@@ -17,6 +16,7 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,7 +27,7 @@ import todo.list.todo_list.dto.Auth.AuthRequest;
 import todo.list.todo_list.dto.Auth.AuthResponse;
 import todo.list.todo_list.entity.RefreshToken;
 import todo.list.todo_list.entity.User;
-import todo.list.todo_list.exception.BadCredentialsException;
+import todo.list.todo_list.exception.CannotProceedException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.model.Role;
 import todo.list.todo_list.security.JwtUtil;
@@ -113,41 +113,120 @@ class AuthServiceImplTest {
     }
 
     @Test
-    @DisplayName("Authenticate with invalid password throws BadCredentialsException")
+    @DisplayName("Authenticate with invalid password throws CannotProceedException")
     void authenticate_invalidPassword_throwsException() {
-        AuthRequest request = this.setupAuthRequest(this.username, "WrongPassword");
+        AuthRequest request = setupAuthRequest(username, "WrongPassword");
+        User user = setupUser(username, "encodedPassword");
 
-        User user = this.setupUser(this.username, "encodedPassword");
-
-        when(userService.getUserByUsername(this.username)).thenReturn(user);
+        when(userService.getUserByUsername(username)).thenReturn(user);
         when(passwordEncoder.matches("WrongPassword", "encodedPassword")).thenReturn(false);
 
-        BadCredentialsException exception = assertThrows(
-                BadCredentialsException.class,
+        CannotProceedException exception = assertThrows(
+                CannotProceedException.class,
                 () -> authService.authenticate(request)
         );
-        assertEquals("Invalid username or password", exception.getMessage());
-        verify(userService).getUserByUsername(this.username);
+        assertEquals("Invalid password", exception.getMessage());
+        verify(userService).getUserByUsername(username);
         verify(passwordEncoder).matches("WrongPassword", "encodedPassword");
         verify(jwtUtil, never()).generateAccessToken(anyString(), anyList());
         verify(refreshTokenService, never()).createRefreshToken(anyString());
     }
 
     @Test
-    @DisplayName("Authenticate but Auth request in NULL throws IllegalArgumentException")
+    @DisplayName("Authenticate with null request throws IllegalArgumentException")
     void authenticate_nullRequest_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> authService.authenticate(null)
         );
-        assertEquals("Auth request cannot be null", exception.getMessage());
-
+        assertEquals("Authentication request or credentials cannot be null", exception.getMessage());
         verify(userService, never()).getUserByUsername(anyString());
         verify(passwordEncoder, never()).matches(anyString(), anyString());
-        verify(jwtUtil, never()).generateAccessToken(anyString(), any());
+        verify(jwtUtil, never()).generateAccessToken(anyString(), anyList());
         verify(refreshTokenService, never()).createRefreshToken(anyString());
     }
 
+    @Test
+    @DisplayName("Authenticate with null username throws IllegalArgumentException")
+    void authenticate_nullUsername_throwsException() {
+        AuthRequest request = setupAuthRequest(null, "Password123!");
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> authService.authenticate(request)
+        );
+        assertEquals("Authentication request or credentials cannot be null", exception.getMessage());
+        verify(userService, never()).getUserByUsername(anyString());
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+        verify(jwtUtil, never()).generateAccessToken(anyString(), anyList());
+        verify(refreshTokenService, never()).createRefreshToken(anyString());
+    }
+    
+    @Test
+    @DisplayName("Authenticate with null password throws IllegalArgumentException")
+    void authenticate_nullPassword_throwsException() {
+        AuthRequest request = setupAuthRequest(username, null);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> authService.authenticate(request)
+        );
+        assertEquals("Authentication request or credentials cannot be null", exception.getMessage());
+        verify(userService, never()).getUserByUsername(anyString());
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+        verify(jwtUtil, never()).generateAccessToken(anyString(), anyList());
+        verify(refreshTokenService, never()).createRefreshToken(anyString());
+    }
+
+    @Test
+    @DisplayName("Authenticate with short username logs warning but succeeds")
+    void authenticate_shortUsername_logsWarning() {
+        String shortUsername = "ab";
+        AuthRequest request = setupAuthRequest(shortUsername, "Password123!");
+        User user = setupUser(shortUsername, "encodedPassword");
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setRefreshToken("refresh-token-value");
+
+        when(userService.getUserByUsername(shortUsername)).thenReturn(user);
+        when(passwordEncoder.matches("Password123!", "encodedPassword")).thenReturn(true);
+        when(jwtUtil.generateAccessToken(shortUsername, List.of("ROLE_USER"))).thenReturn("access-token-value");
+        when(refreshTokenService.createRefreshToken(shortUsername)).thenReturn(refreshToken);
+
+        AuthResponse response = authService.authenticate(request);
+
+        assertNotNull(response);
+        assertEquals("access-token-value", response.getAccessToken());
+        assertEquals("refresh-token-value", response.getRefreshToken());
+        verify(userService).getUserByUsername(shortUsername);
+        verify(passwordEncoder).matches("Password123!", "encodedPassword");
+        verify(jwtUtil).generateAccessToken(shortUsername, List.of("ROLE_USER"));
+        verify(refreshTokenService).createRefreshToken(shortUsername);
+    }
+
+    @Test
+    @DisplayName("Authenticate with frequent attempts logs warning")
+    void authenticate_frequentAttempts_logsWarning() {
+        AuthRequest request = setupAuthRequest(username, "Password123!");
+        User user = setupUser(username, "encodedPassword");
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setRefreshToken("refresh-token-value");
+
+        when(userService.getUserByUsername(username)).thenReturn(user);
+        when(passwordEncoder.matches("Password123!", "encodedPassword")).thenReturn(true);
+        when(jwtUtil.generateAccessToken(username, List.of("ROLE_USER"))).thenReturn("access-token-value");
+        when(refreshTokenService.createRefreshToken(username)).thenReturn(refreshToken);
+
+        for (int i = 0; i < 4; i++) {
+            authService.authenticate(request);
+        }
+
+        verify(userService, times(4)).getUserByUsername(username);
+        verify(passwordEncoder, times(4)).matches("Password123!", "encodedPassword");
+        verify(jwtUtil, times(4)).generateAccessToken(username, List.of("ROLE_USER"));
+        verify(refreshTokenService, times(4)).createRefreshToken(username);
+    }
+
+    
     @Test
     @DisplayName("Refresh token with valid token returns new access token")
     void refreshToken_successfulRefreshing() {

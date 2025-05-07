@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +26,8 @@ import todo.list.todo_list.security.JwtUtil;
 @ExtendWith(MockitoExtension.class)
 class RefreshTokenServiceImplTest {
 
+    private final String username = "testuser";
+
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
 
@@ -35,53 +38,79 @@ class RefreshTokenServiceImplTest {
     private RefreshTokenServiceImpl refreshTokenService;
 
     @Test
-    @DisplayName("Create Refresh Token with valid username returns new Refresh Token")
+    @DisplayName("Create refresh token with valid username creates token")
     void createRefreshToken_successfulCreation() {
-        String username = "testuser";
-        String token = "refresh-token";
-        long expirationMillis = 86400;
-        Instant expectedExpiration = Instant.now().plusMillis(expirationMillis);
-
-        when(jwtUtil.generateRefreshToken(username)).thenReturn(token);
-        when(jwtUtil.getRefreshExpirationMillis()).thenReturn(expirationMillis);
+        when(jwtUtil.generateRefreshToken(username)).thenReturn("jwt.refresh.token");
+        when(jwtUtil.getRefreshExpirationMillis()).thenReturn(604800000L); // 7 days
         when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        RefreshToken result = refreshTokenService.createRefreshToken(username);
+        RefreshToken token = refreshTokenService.createRefreshToken(username);
 
-        assertNotNull(result);
-        assertEquals(username, result.getUsername());
-        assertEquals(token, result.getRefreshToken());
-        assertTrue(result.getExpiration().isAfter(Instant.now()));
-        assertTrue(result.getExpiration().isBefore(expectedExpiration.plusSeconds(1)));
-
+        assertNotNull(token);
+        assertEquals(username, token.getUsername());
+        assertEquals("jwt.refresh.token", token.getRefreshToken());
+        assertNotNull(token.getExpiration());
+        assertTrue(token.getExpiration().isAfter(Instant.now()));
+        verify(refreshTokenRepository).deleteByUsername(username);
         verify(jwtUtil).generateRefreshToken(username);
         verify(jwtUtil).getRefreshExpirationMillis();
         verify(refreshTokenRepository).save(any(RefreshToken.class));
     }
 
     @Test
-    @DisplayName("Create Refresh Token but username is NULL throws IllegalArgumentException")
+    @DisplayName("Create refresh token with null username throws IllegalArgumentException")
     void createRefreshToken_nullUsername_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> refreshTokenService.createRefreshToken(null)
         );
-
         assertEquals("Username cannot be null", exception.getMessage());
+        verify(refreshTokenRepository, never()).deleteByUsername(anyString());
         verify(jwtUtil, never()).generateRefreshToken(anyString());
-        verify(refreshTokenRepository, never()).save(any());
+        verify(refreshTokenRepository, never()).save(any(RefreshToken.class));
     }
 
     @Test
-    @DisplayName("Delete Refresh Token by Username but Username is NULL throws IllegalArgumentException")
-    void deleteByUsername_nullUsername_throwsExcepton() {
+    @DisplayName("Delete refresh token by username deletes tokens")
+    void deleteByUsername_successfulDeletion() {
+        doNothing().when(refreshTokenRepository).deleteByUsername(username);
+
+        refreshTokenService.deleteByUsername(username);
+
+        verify(refreshTokenRepository).deleteByUsername(username);
+        verify(jwtUtil, never()).generateRefreshToken(anyString());
+        verify(refreshTokenRepository, never()).save(any(RefreshToken.class));
+    }
+
+    
+
+    @Test
+    @DisplayName("Delete refresh token with null username throws IllegalArgumentException")
+    void deleteByUsername_nullUsername_throwsException() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> refreshTokenService.deleteByUsername(null)
         );
-
         assertEquals("Username cannot be null", exception.getMessage());
+        verify(refreshTokenRepository, never()).deleteByUsername(anyString());
+    }
 
-        verify(refreshTokenRepository, never()).findByUsername(anyString());
+    @Test
+    @DisplayName("Create refresh token with database failure throws RuntimeException")
+    void createRefreshToken_databaseFailure_throwsException() {
+        when(jwtUtil.generateRefreshToken(username)).thenReturn("jwt.refresh.token");
+        when(jwtUtil.getRefreshExpirationMillis()).thenReturn(604800000L);
+        when(refreshTokenRepository.save(any(RefreshToken.class)))
+                .thenThrow(new RuntimeException("Database failure"));
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> refreshTokenService.createRefreshToken(username)
+        );
+        assertEquals("Database failure", exception.getMessage());
+        verify(refreshTokenRepository).deleteByUsername(username);
+        verify(jwtUtil).generateRefreshToken(username);
+        verify(jwtUtil).getRefreshExpirationMillis();
+        verify(refreshTokenRepository).save(any(RefreshToken.class));
     }
 }
