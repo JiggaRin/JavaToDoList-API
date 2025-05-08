@@ -21,6 +21,7 @@ public class TaskRequest {
     @Size(min = 1, max = 255, message = "Description must be between 1 and 255 characters")
     private String description;
 
+    // TODO Devide Task request for two classes with separate validation
     @NotNull(message = "Status is required")
     @EnumValidator(enumClass = Status.class, message = "Invalid status value. Status must be one of: TODO, IN_PROGRESS, DONE")
     private Status status;

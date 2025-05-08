@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -32,6 +34,7 @@ import todo.list.todo_list.service.UserService;
 @Service
 public class TaskServiceImpl implements TaskService {
 
+    private static final Logger log = LoggerFactory.getLogger(TaskServiceImpl.class);
     private final UserService userService;
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
@@ -46,205 +49,225 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskDTO createTask(TaskRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("Task request cannot be null");
-        }
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.getUserByUsername(username);
+        log.debug("Received task creation request");
+        validateTaskRequest(request, "Task request cannot be null");
 
-        if (!taskRepository.isTitleUnique(request.getTitle(), user.getId(), null)) {
-            throw new ResourceConflictException("Title must be unique for the user");
-        }
+        User user = getAuthenticatedUser();
+        log.debug("Creating task for user: {}", user.getUsername());
 
-        if (hasDuplicateCategories(request.getCategoryNames())) {
-            throw new DuplicateCategoryException("A task cannot have duplicate categories.");
-        }
+        validateTitleUniqueness(request.getTitle(), user.getId(), null);
+        validateCategories(request.getCategoryNames());
 
         Task task = taskMapper.fromTaskRequest(request);
         task.setOwner(user);
         task.setStatus(request.getStatus() != null ? request.getStatus() : Status.TODO);
 
-        if (request.getParentId() != null) {
-            Task parentTask = taskRepository.findById(request.getParentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Parent Task not found with ID: " + request.getParentId()));
+        assignParentTask(task, request.getParentId(), user);
+        task.setCategories(fetchOrCreateCategories(request.getCategoryNames()));
+
+        Task savedTask = saveTask(task);
+        log.info("Successfully created task with ID: {} for user: {}", savedTask.getId(), user.getUsername());
+        return taskMapper.toTaskDTO(savedTask);
+    }
+
+    @Override
+    public TaskDTO getTask(Long taskId) {
+        log.debug("Received request to retrieve task with ID: {}", taskId);
+        validateTaskId(taskId);
+
+        Task task = findTaskById(taskId);
+        log.info("Successfully retrieved task with ID: {}", taskId);
+        return taskMapper.toTaskDTO(task);
+    }
+
+    @Override
+    public TaskDTO updateTask(Long taskId, TaskRequest request) {
+        log.debug("Received request to update task with ID: {}", taskId);
+        validateTaskId(taskId);
+        validateTaskRequest(request, "Task request cannot be null");
+
+        Task existingTask = findTaskById(taskId);
+        User user = getAuthenticatedUser();
+        log.debug("Updating task for user: {}", user.getUsername());
+
+        validateTitleUniqueness(request.getTitle(), user.getId(), taskId);
+        validateCategories(request.getCategoryNames());
+
+        if (request.getStatus() == Status.DONE) {
+            validateChildTaskCompletion(taskId);
+        }
+
+        taskMapper.updateTaskFromRequest(request, existingTask);
+        existingTask.setOwner(user);
+        assignParentTask(existingTask, request.getParentId(), user);
+        existingTask.setCategories(fetchOrCreateCategories(request.getCategoryNames()));
+
+        Task savedTask = saveTask(existingTask);
+        log.info("Successfully updated task with ID: {}", taskId);
+        return taskMapper.toTaskDTO(savedTask);
+    }
+
+    @Override
+    public TaskDTO updateTaskStatus(Long taskId, TaskStatusUpdateRequest request) {
+        log.debug("Received request to update status for task with ID: {}", taskId);
+        validateTaskId(taskId);
+        validateTaskRequest(request, "Task Status Update request cannot be null");
+
+        Task existingTask = findTaskById(taskId);
+        if (request.getStatus() == Status.DONE) {
+            validateChildTaskCompletion(taskId);
+        }
+
+        existingTask.setStatus(request.getStatus());
+        Task savedTask = saveTask(existingTask);
+        log.info("Successfully updated status for task with ID: {} to: {}", taskId, request.getStatus());
+        return taskMapper.toTaskDTO(savedTask);
+    }
+
+    @Override
+    public void deleteTask(Long taskId) {
+        log.debug("Received request to delete task with ID: {}", taskId);
+        validateTaskId(taskId);
+
+        Task existingTask = findTaskById(taskId);
+        List<Task> childTasks = taskRepository.findByParentTaskId(taskId);
+
+        if (!childTasks.isEmpty()) {
+            validateChildTaskCompletion(taskId);
+        }
+
+        childTasks.forEach(taskRepository::delete);
+        taskRepository.delete(existingTask);
+        log.info("Successfully deleted task with ID: {} and {} child tasks", taskId, childTasks.size());
+    }
+
+    @Override
+    public Page<TaskDTO> getAllTasks(Long userId, String search, int page, int size, String sortBy, String direction) {
+        log.debug("Received request to retrieve tasks for user ID: {}, search: {}, page: {}, size: {}", userId, search, page, size);
+        validateSortParameters(sortBy, direction);
+
+        Page<Task> tasks = getTasksAccordingAdditionalParams(userId, search, page, size, sortBy, direction);
+        log.info("Successfully retrieved {} tasks for user ID: {}", tasks.getTotalElements(), userId);
+        return tasks.map(taskMapper::toTaskDTO);
+    }
+
+    @Override
+    public List<TaskDTO> getTasksByUser(Long userId) {
+        log.debug("Received request to retrieve tasks for user ID: {}", userId);
+        validateUserId(userId);
+
+        User user = userService.getUserById(userId);
+        List<Task> tasks = taskRepository.findByOwner(user);
+        log.info("Successfully retrieved {} tasks for user ID: {}", tasks.size(), userId);
+        return tasks.stream().map(taskMapper::toTaskDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean isOwner(Long taskId, String username) {
+        log.debug("Checking ownership for task ID: {} by username: {}", taskId, username);
+        validateTaskId(taskId);
+        if (username == null) {
+            log.warn("Null username provided for ownership check of task ID: {}", taskId);
+            throw new IllegalArgumentException("Username cannot be null");
+        }
+
+        Task task = findTaskById(taskId);
+        boolean isOwner = task.getOwner().getUsername().equals(username);
+        log.debug("Ownership check for task ID: {} by username: {} resulted in: {}", taskId, username, isOwner);
+        return isOwner;
+    }
+
+    private User getAuthenticatedUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.debug("Fetching authenticated user: {}", username);
+        return userService.getUserByUsername(username);
+    }
+
+    private void validateTaskId(Long taskId) {
+        if (taskId == null) {
+            log.warn("Task ID is null");
+            throw new IllegalArgumentException("Task ID cannot be null.");
+        }
+    }
+
+    private void validateUserId(Long userId) {
+        if (userId == null) {
+            log.warn("User ID is null");
+            throw new IllegalArgumentException("User ID cannot be null.");
+        }
+    }
+
+    private void validateTaskRequest(Object request, String errorMessage) {
+        if (request == null) {
+            log.warn("Invalid request: {}", errorMessage);
+            throw new IllegalArgumentException(errorMessage);
+        }
+    }
+
+    private void validateSortParameters(String sortBy, String direction) {
+        if (sortBy == null) {
+            log.warn("Sort by field is null");
+            throw new IllegalArgumentException("Sort by field cannot be null");
+        }
+        if (direction == null) {
+            log.warn("Sort direction is null");
+            throw new IllegalArgumentException("Sort direction cannot be null");
+        }
+    }
+
+    private void validateTitleUniqueness(String title, Long userId, Long taskId) {
+        if (!taskRepository.isTitleUnique(title, userId, taskId)) {
+            log.warn("Non-unique title detected: {} for user ID: {}", title, userId);
+            throw new ResourceConflictException("Title must be unique for the user.");
+        }
+    }
+
+    private void validateCategories(List<String> categoryNames) {
+        if (hasDuplicateCategories(categoryNames)) {
+            log.warn("Duplicate categories detected: {}", categoryNames);
+            throw new DuplicateCategoryException("A task cannot have duplicate categories.");
+        }
+    }
+
+    private Task findTaskById(Long taskId) {
+        return taskRepository.findById(taskId)
+                .orElseThrow(() -> {
+                    log.error("Task not found with ID: {}", taskId);
+                    return new ResourceNotFoundException("Task not found with ID: " + taskId);
+                });
+    }
+
+    private void assignParentTask(Task task, Long parentId, User user) {
+        if (parentId != null) {
+            log.debug("Assigning parent task with ID: {} to task", parentId);
+            Task parentTask = taskRepository.findById(parentId)
+                    .orElseThrow(() -> {
+                        log.error("Parent task not found with ID: {}", parentId);
+                        return new ResourceNotFoundException("Parent Task not found with ID: " + parentId);
+                    });
             if (!parentTask.getOwner().getId().equals(user.getId())) {
+                log.warn("Parent task ID: {} does not belong to user: {}", parentId, user.getUsername());
                 throw new AccessDeniedException("Parent task must belong to the authenticated user.");
             }
             task.setParentTask(parentTask);
         } else {
             task.setParentTask(null);
         }
-
-        Set<Category> categories = fetchOrCreateCategories(request.getCategoryNames());
-        task.setCategories(categories);
-
-        Task savedTask = taskRepository.save(task);
-        if (savedTask == null) {
-            throw new IllegalStateException("Failed to save task");
-        }
-        return taskMapper.toTaskDTO(savedTask);
-    }
-
-    @Override
-    public TaskDTO getTask(Long taskId) {
-        if (taskId == null) {
-            throw new IllegalArgumentException("Task ID cannot be null");
-        }
-
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
-
-        return taskMapper.toTaskDTO(task);
-    }
-
-    @Override
-    public TaskDTO updateTask(Long taskId, TaskRequest request) {
-        if (taskId == null) {
-            throw new IllegalArgumentException("Task ID cannot be null");
-        }
-
-        if (request == null) {
-            throw new IllegalArgumentException("Task request cannot be null");
-        }
-
-        Task existedTask = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
-
-        if (!taskRepository.isTitleUnique(request.getTitle(), existedTask.getOwner().getId(), taskId)) {
-            throw new ResourceConflictException("Title must be unique for the user.");
-        }
-
-        if (hasDuplicateCategories(request.getCategoryNames())) {
-            throw new DuplicateCategoryException("A task cannot have duplicate categories.");
-        }
-
-        if (request.getStatus() == Status.DONE) {
-            validateChildTaskCompletion(taskId);
-        }
-
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.getUserByUsername(username);
-
-        taskMapper.updateTaskFromRequest(request, existedTask);
-        existedTask.setOwner(user);
-
-        if (request.getParentId() != null) {
-            Task parentTask = taskRepository.findById(request.getParentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Parent Task not found with ID: " + request.getParentId()));
-            if (!parentTask.getOwner().getId().equals(user.getId())) {
-                throw new AccessDeniedException("Parent task must belong to the authenticated user.");
-            }
-            existedTask.setParentTask(parentTask);
-        } else {
-            existedTask.setParentTask(null);
-        }
-
-        Set<Category> categories = fetchOrCreateCategories(request.getCategoryNames());
-        existedTask.setCategories(categories);
-
-        Task savedTask = taskRepository.save(existedTask);
-        if (savedTask == null) {
-            throw new IllegalStateException("Failed to save task with ID: " + taskId);
-        }
-        return taskMapper.toTaskDTO(savedTask);
-    }
-
-    @Override
-    public TaskDTO updateTaskStatus(Long taskId, TaskStatusUpdateRequest request) {
-        if (taskId == null) {
-            throw new IllegalArgumentException("Task ID cannot be null");
-        }
-
-        if (request == null) {
-            throw new IllegalArgumentException("Task Status Update request cannot be null");
-        }
-
-        Task existedTask = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
-
-        if (request.getStatus() == Status.DONE) {
-            validateChildTaskCompletion(taskId);
-        }
-
-        existedTask.setStatus(request.getStatus());
-
-        return taskMapper.toTaskDTO(taskRepository.save(existedTask));
-    }
-
-    @Override
-    public void deleteTask(Long taskId) {
-        if (taskId == null) {
-            throw new IllegalArgumentException("Task ID cannot be null");
-        }
-
-        Task existingTask = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
-
-        List<Task> childTasks = taskRepository.findByParentTaskId(taskId);
-
-        if (!childTasks.isEmpty()) {
-            validateChildTaskCompletion(existingTask.getId());
-        }
-
-        for (Task childTask : childTasks) {
-            taskRepository.delete(childTask);
-        }
-
-        taskRepository.delete(existingTask);
-    }
-
-    @Override
-    public Page<TaskDTO> getAllTasks(Long userId, String search, int page, int size, String sortBy, String direction) {
-        if (sortBy == null) {
-            throw new IllegalArgumentException("Sort by field cannot be null");
-        }
-
-        if (direction == null) {
-            throw new IllegalArgumentException("Sort direction cannot be null");
-        }
-
-        Page<Task> tasks = getTasksAccordingAdditionalParams(userId, search, page, size, sortBy, direction);
-
-        return tasks.map(taskMapper::toTaskDTO);
-    }
-
-    @Override
-    public List<TaskDTO> getTasksByUser(Long userId) {
-        if (userId == null) {
-            throw new IllegalArgumentException("User ID cannot be null");
-        }
-        User user = userService.getUserById(userId);
-        List<Task> tasks = taskRepository.findByOwner(user);
-
-        return tasks.stream()
-                .map(taskMapper::toTaskDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public boolean isOwner(Long taskId, String username) {
-        if (taskId == null) {
-            throw new IllegalArgumentException("Task ID cannot be null");
-        }
-
-        if (username == null) {
-            throw new IllegalArgumentException("Username cannot be null");
-        }
-
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
-
-        return task.getOwner().getUsername().equals(username);
     }
 
     private Set<Category> fetchOrCreateCategories(List<String> categoryNames) {
-        if (categoryNames == null) {
+        if (categoryNames == null || categoryNames.isEmpty()) {
+            log.debug("No categories provided, returning empty set");
             return new HashSet<>();
         }
 
+        log.debug("Fetching or creating categories: {}", categoryNames);
         return categoryNames.stream()
                 .map(name -> categoryRepository.findByName(name)
-                .orElseGet(() -> categoryRepository.save(new Category(name))))
+                        .orElseGet(() -> {
+                            log.debug("Creating new category: {}", name);
+                            return categoryRepository.save(new Category(name));
+                        }))
                 .collect(Collectors.toSet());
     }
 
@@ -252,26 +275,43 @@ public class TaskServiceImpl implements TaskService {
         if (categoryNames == null) {
             return false;
         }
-
         Set<String> uniqueCategories = new HashSet<>(categoryNames);
-        return uniqueCategories.size() < categoryNames.size();
+        boolean hasDuplicates = uniqueCategories.size() < categoryNames.size();
+        if (hasDuplicates) {
+            log.warn("Duplicate categories detected: {}", categoryNames);
+        }
+        return hasDuplicates;
     }
 
     void validateChildTaskCompletion(Long taskId) {
         List<Task> childTasks = taskRepository.findByParentTaskId(taskId);
-
         boolean hasIncompleteChildTasks = childTasks.stream()
                 .anyMatch(task -> task.getStatus() != Status.DONE);
 
         if (hasIncompleteChildTasks) {
+            log.warn("Incomplete child tasks detected for task ID: {}", taskId);
             throw new CannotProceedException("Cannot proceed with task " + taskId + " while child tasks are not completed.");
         }
     }
 
+    private Task saveTask(Task task) {
+        try {
+            Task savedTask = taskRepository.save(task);
+            if (savedTask == null) {
+                log.error("Failed to save task: {}", task.getTitle());
+                throw new IllegalStateException("Failed to save task with ID: " + task.getId());
+            }
+            return savedTask;
+        } catch (IllegalStateException e) {
+            log.error("Error saving task: {} due to: {}", task.getTitle(), e.getMessage());
+            throw new IllegalStateException(e.getMessage(), e);
+        }
+    }
+
     private Page<Task> getTasksAccordingAdditionalParams(Long userId, String search, int page, int size, String sortBy, String direction) {
+        log.debug("Fetching tasks with userId: {}, search: {}, sortBy: {}, direction: {}", userId, search, sortBy, direction);
         Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         PageRequest pageable = PageRequest.of(page, size, sort);
-
         return taskRepository.findParentTasks(userId, search, pageable);
     }
 }
