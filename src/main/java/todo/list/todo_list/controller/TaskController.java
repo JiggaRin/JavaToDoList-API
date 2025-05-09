@@ -20,9 +20,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import todo.list.todo_list.dto.Task.CreateTaskRequest;
 import todo.list.todo_list.dto.Task.TaskDTO;
-import todo.list.todo_list.dto.Task.TaskRequest;
 import todo.list.todo_list.dto.Task.TaskStatusUpdateRequest;
+import todo.list.todo_list.dto.Task.UpdateTaskRequest;
 import todo.list.todo_list.security.CustomUserDetails;
 import todo.list.todo_list.service.TaskService;
 
@@ -39,7 +40,7 @@ public class TaskController {
 
     @PostMapping("/")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<TaskDTO> createTask(@Valid @RequestBody TaskRequest taskRequest) {
+    public ResponseEntity<TaskDTO> createTask(@Valid @RequestBody CreateTaskRequest taskRequest) {
         log.debug("Received Create Task request");
 
         TaskDTO createdTask = taskService.createTask(taskRequest);
@@ -61,7 +62,7 @@ public class TaskController {
 
     @PutMapping("/{taskId}")
     @PreAuthorize("(hasRole('USER') and @taskService.isOwner(#taskId, authentication.name)) or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<TaskDTO> updateTask(@PathVariable Long taskId, @Valid @RequestBody TaskRequest taskRequest) {
+    public ResponseEntity<TaskDTO> updateTask(@PathVariable Long taskId, @Valid @RequestBody UpdateTaskRequest taskRequest) {
         log.debug("Received Update Task request by taskID: {}", taskId);
 
         TaskDTO task = taskService.updateTask(taskId, taskRequest);

@@ -4,17 +4,18 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 
+import todo.list.todo_list.dto.Task.CreateTaskRequest;
 import todo.list.todo_list.dto.Task.TaskDTO;
-import todo.list.todo_list.dto.Task.TaskRequest;
 import todo.list.todo_list.dto.Task.TaskStatusUpdateRequest;
+import todo.list.todo_list.dto.Task.UpdateTaskRequest;
 
 public interface TaskService {
 
-    TaskDTO createTask(TaskRequest request);
+    TaskDTO createTask(CreateTaskRequest request);
 
     TaskDTO getTask(Long taskId);
 
-    TaskDTO updateTask(Long taskId, TaskRequest request);
+    TaskDTO updateTask(Long taskId, UpdateTaskRequest request);
 
     TaskDTO updateTaskStatus(Long taskId, TaskStatusUpdateRequest request);
 

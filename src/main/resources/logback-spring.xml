@@ -109,7 +109,7 @@
 
     <!-- Logger for AuthService -->
     <logger name="todo.list.todo_list.service.impl.AuthServiceImpl" level="DEBUG" additivity="false">
-        <appender-ref ref="CONSOLE" />
+        <!-- <appender-ref ref="CONSOLE" /> -->
         <appender-ref ref="AUTH_SERVICE_FILE" />
     </logger>
 

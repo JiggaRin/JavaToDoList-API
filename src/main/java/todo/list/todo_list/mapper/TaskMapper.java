@@ -3,9 +3,11 @@ package todo.list.todo_list.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
+import todo.list.todo_list.dto.Task.CreateTaskRequest;
 import todo.list.todo_list.dto.Task.TaskDTO;
-import todo.list.todo_list.dto.Task.TaskRequest;
+import todo.list.todo_list.dto.Task.UpdateTaskRequest;
 import todo.list.todo_list.entity.Task;
 
 @Mapper(componentModel = "spring")
@@ -24,7 +26,7 @@ public interface TaskMapper {
     @Mapping(target = "subTasks", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    Task fromTaskRequest(TaskRequest request);
+    Task createTaskFromRequest(CreateTaskRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "owner", ignore = true)
@@ -33,5 +35,8 @@ public interface TaskMapper {
     @Mapping(target = "subTasks", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    void updateTaskFromRequest(TaskRequest request, @MappingTarget Task task);
+    @Mapping(target = "title", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "description", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "status", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    void updateTaskFromRequest(UpdateTaskRequest request, @MappingTarget Task task);
 }

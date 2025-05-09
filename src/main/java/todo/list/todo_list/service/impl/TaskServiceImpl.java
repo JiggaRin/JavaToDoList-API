@@ -13,9 +13,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import todo.list.todo_list.dto.Task.CreateTaskRequest;
 import todo.list.todo_list.dto.Task.TaskDTO;
-import todo.list.todo_list.dto.Task.TaskRequest;
 import todo.list.todo_list.dto.Task.TaskStatusUpdateRequest;
+import todo.list.todo_list.dto.Task.UpdateTaskRequest;
 import todo.list.todo_list.entity.Category;
 import todo.list.todo_list.entity.Task;
 import todo.list.todo_list.entity.User;
@@ -48,7 +49,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public TaskDTO createTask(TaskRequest request) {
+    public TaskDTO createTask(CreateTaskRequest request) {
         log.debug("Received task creation request");
         validateTaskRequest(request, "Task request cannot be null");
 
@@ -58,11 +59,14 @@ public class TaskServiceImpl implements TaskService {
         validateTitleUniqueness(request.getTitle(), user.getId(), null);
         validateCategories(request.getCategoryNames());
 
-        Task task = taskMapper.fromTaskRequest(request);
+        Task task = taskMapper.createTaskFromRequest(request);
         task.setOwner(user);
         task.setStatus(request.getStatus() != null ? request.getStatus() : Status.TODO);
 
-        assignParentTask(task, request.getParentId(), user);
+        if (request.getParentId() != null) {
+            assignParentTask(task, request.getParentId(), user);
+        }
+
         task.setCategories(fetchOrCreateCategories(request.getCategoryNames()));
 
         Task savedTask = saveTask(task);
@@ -81,7 +85,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public TaskDTO updateTask(Long taskId, TaskRequest request) {
+    public TaskDTO updateTask(Long taskId, UpdateTaskRequest request) {
         log.debug("Received request to update task with ID: {}", taskId);
         validateTaskId(taskId);
         validateTaskRequest(request, "Task request cannot be null");
@@ -90,17 +94,25 @@ public class TaskServiceImpl implements TaskService {
         User user = getAuthenticatedUser();
         log.debug("Updating task for user: {}", user.getUsername());
 
-        validateTitleUniqueness(request.getTitle(), user.getId(), taskId);
-        validateCategories(request.getCategoryNames());
+        if (request.getTitle() != null) {
+            validateTitleUniqueness(request.getTitle(), user.getId(), taskId);
+        }
 
-        if (request.getStatus() == Status.DONE) {
+        if (request.getCategoryNames() != null) {
+            validateCategories(request.getCategoryNames());
+            existingTask.setCategories(fetchOrCreateCategories(request.getCategoryNames()));
+        }
+
+        if (request.getStatus() != null && request.getStatus() == Status.DONE) {
             validateChildTaskCompletion(taskId);
+        }
+
+        if (request.getParentId() != null) {
+            assignParentTask(existingTask, request.getParentId(), user);
         }
 
         taskMapper.updateTaskFromRequest(request, existingTask);
         existingTask.setOwner(user);
-        assignParentTask(existingTask, request.getParentId(), user);
-        existingTask.setCategories(fetchOrCreateCategories(request.getCategoryNames()));
 
         Task savedTask = saveTask(existingTask);
         log.info("Successfully updated task with ID: {}", taskId);
@@ -238,21 +250,18 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private void assignParentTask(Task task, Long parentId, User user) {
-        if (parentId != null) {
-            log.debug("Assigning parent task with ID: {} to task", parentId);
-            Task parentTask = taskRepository.findById(parentId)
-                    .orElseThrow(() -> {
-                        log.error("Parent task not found with ID: {}", parentId);
-                        return new ResourceNotFoundException("Parent Task not found with ID: " + parentId);
-                    });
-            if (!parentTask.getOwner().getId().equals(user.getId())) {
-                log.warn("Parent task ID: {} does not belong to user: {}", parentId, user.getUsername());
-                throw new AccessDeniedException("Parent task must belong to the authenticated user.");
-            }
-            task.setParentTask(parentTask);
-        } else {
-            task.setParentTask(null);
+        log.debug("Assigning parent task with ID: {} to task", parentId);
+        Task parentTask = taskRepository.findById(parentId)
+                .orElseThrow(() -> {
+                    log.error("Parent task not found with ID: {}", parentId);
+                    return new ResourceNotFoundException("Parent Task not found with ID: " + parentId);
+                });
+        if (!parentTask.getOwner().getId().equals(user.getId())) {
+            log.warn("Parent task ID: {} does not belong to user: {}", parentId, user.getUsername());
+            throw new AccessDeniedException("Parent task must belong to the authenticated user.");
         }
+        task.setParentTask(parentTask);
+
     }
 
     private Set<Category> fetchOrCreateCategories(List<String> categoryNames) {
@@ -264,10 +273,10 @@ public class TaskServiceImpl implements TaskService {
         log.debug("Fetching or creating categories: {}", categoryNames);
         return categoryNames.stream()
                 .map(name -> categoryRepository.findByName(name)
-                        .orElseGet(() -> {
-                            log.debug("Creating new category: {}", name);
-                            return categoryRepository.save(new Category(name));
-                        }))
+                .orElseGet(() -> {
+                    log.debug("Creating new category: {}", name);
+                    return categoryRepository.save(new Category(name));
+                }))
                 .collect(Collectors.toSet());
     }
 
