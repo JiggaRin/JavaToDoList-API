@@ -957,4 +957,21 @@ class TaskServiceImplTest {
         verify(taskRepository, never()).findParentTasks(any(), any(), any());
         verify(taskMapper, never()).toTaskDTO(any());
     }
+
+    @Test
+    @DisplayName("Get Tasks By User with user not found throws ResourceNotFoundException")
+    void getTasksByUser_userNotFound_throwsException() {
+        Long userId = 1L;
+
+        when(userService.getUserById(userId)).thenThrow(new ResourceNotFoundException("User not found with ID: " + userId));
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> taskService.getTasksByUser(userId)
+        );
+
+        assertEquals("User not found with ID: " + userId, exception.getMessage());
+        verify(userService).getUserById(userId);
+        verify(taskRepository, never()).findByOwner(any(User.class));
+    }
 }
