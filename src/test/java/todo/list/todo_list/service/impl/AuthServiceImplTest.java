@@ -93,13 +93,16 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("Authenticate with valid credentials returns tokens")
     void authenticate_successfulAuthentication() {
+        // Arrange
         AuthRequest request = this.setupAuthRequest(USERNAME, PASSWORD);
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setRefreshToken(REFRESH_TOKEN);
         this.setupSuccessfulAuthMocks(request, defaultUser, refreshToken);
 
+        // Act
         AuthResponse response = authService.authenticate(request);
 
+        // Assert
         assertNotNull(response);
         assertEquals(ACCESS_TOKEN, response.getAccessToken());
         assertEquals(REFRESH_TOKEN, response.getRefreshToken());
@@ -112,11 +115,13 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("Authenticate with unknown user throws UsernameNotFoundException")
     void authenticate_userNotFound_throwsException() {
+        // Arrange
         String unknownUsername = "unknownuser";
         AuthRequest request = this.setupAuthRequest(unknownUsername, PASSWORD);
         when(userService.getUserByUsername(unknownUsername))
                 .thenThrow(new UsernameNotFoundException("User not found"));
 
+        // Act & Assert
         UsernameNotFoundException exception = assertThrows(
                 UsernameNotFoundException.class,
                 () -> authService.authenticate(request)
@@ -129,11 +134,13 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("Authenticate with invalid password throws CannotProceedException")
     void authenticate_invalidPassword_throwsException() {
+        // Arrange
         String wrongPassword = "WrongPassword";
         AuthRequest request = this.setupAuthRequest(USERNAME, wrongPassword);
         when(userService.getUserByUsername(USERNAME)).thenReturn(defaultUser);
         when(passwordEncoder.matches(wrongPassword, ENCODED_PASSWORD)).thenReturn(false);
 
+        // Act & Assert
         CannotProceedException exception = assertThrows(
                 CannotProceedException.class,
                 () -> authService.authenticate(request)
@@ -147,6 +154,7 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("Authenticate with null request throws IllegalArgumentException")
     void authenticate_nullRequest_throwsException() {
+        // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> authService.authenticate(null)
@@ -158,8 +166,10 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("Authenticate with null username throws IllegalArgumentException")
     void authenticate_nullUsername_throwsException() {
+        // Arrange
         AuthRequest request = this.setupAuthRequest(null, PASSWORD);
 
+        // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> authService.authenticate(request)
@@ -171,8 +181,10 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("Authenticate with null password throws IllegalArgumentException")
     void authenticate_nullPassword_throwsException() {
+        // Arrange
         AuthRequest request = this.setupAuthRequest(USERNAME, null);
 
+        // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> authService.authenticate(request)
@@ -184,6 +196,7 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("Authenticate with short username succeeds")
     void authenticate_shortUsername_succeeds() {
+        // Arrange
         String shortUsername = "ab";
         AuthRequest request = this.setupAuthRequest(shortUsername, PASSWORD);
         User user = new User(shortUsername, ENCODED_PASSWORD, Role.USER);
@@ -191,8 +204,10 @@ class AuthServiceImplTest {
         refreshToken.setRefreshToken(REFRESH_TOKEN);
         setupSuccessfulAuthMocks(request, user, refreshToken);
 
+        // Act
         AuthResponse response = authService.authenticate(request);
 
+        // Assert
         assertNotNull(response);
         assertEquals(ACCESS_TOKEN, response.getAccessToken());
         assertEquals(REFRESH_TOKEN, response.getRefreshToken());
@@ -205,11 +220,14 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("Refresh token with valid token returns new access token")
     void refreshToken_successfulRefreshing() {
+        // Arrange
         String refreshTokenValue = REFRESH_TOKEN;
         setupSuccessfulRefreshMocks(refreshTokenValue, defaultUser);
 
+        // Act
         AuthResponse response = authService.refreshToken(refreshTokenValue);
 
+        // Assert
         assertNotNull(response);
         assertEquals(ACCESS_TOKEN, response.getAccessToken());
         InOrder inOrder = inOrder(jwtUtil, userService);
@@ -222,10 +240,12 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("Refresh token with invalid token throws IllegalArgumentException")
     void refreshToken_invalidRefreshToken_throwsException() {
+        // Arrange
         String refreshToken = "invalid-refresh-token";
         when(jwtUtil.validateToken(refreshToken))
                 .thenThrow(new IllegalArgumentException("Invalid or expired refresh token"));
 
+        // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> authService.refreshToken(refreshToken)
@@ -240,12 +260,14 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("Refresh token with valid token but missing user throws ResourceNotFoundException")
     void refreshToken_userNotFound_throwsException() {
+        // Arrange
         String refreshToken = REFRESH_TOKEN;
         when(jwtUtil.validateToken(refreshToken)).thenReturn(true);
         when(jwtUtil.extractUsername(refreshToken)).thenReturn(USERNAME);
         when(userService.getUserByUsername(USERNAME))
                 .thenThrow(new ResourceNotFoundException("User not found with username: " + USERNAME));
 
+        // Act & Assert
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> authService.refreshToken(refreshToken)
@@ -279,9 +301,11 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("Logout with invalid refresh token throws IllegalArgumentException")
     void logout_invalidToken_throwsException() {
+        // Arrange
         String refreshToken = "invalid-refresh-token";
         when(jwtUtil.validateToken(refreshToken)).thenReturn(false);
 
+        // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> authService.logout(refreshToken)
