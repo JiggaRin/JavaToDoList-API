@@ -87,7 +87,7 @@ class CategoryServiceImplTest {
         // Arrange
         CategoryRequest request = setupCategoryRequest(CATEGORY_NAME);
         CategoryDTO dto = setupCategoryDTO(CATEGORY_ID, CATEGORY_NAME);
-        setupSuccessfulCategoryMocks(request, defaultCategory, dto, null);
+        this.setupSuccessfulCategoryMocks(request, defaultCategory, dto, null);
 
         // Act
         CategoryDTO result = categoryService.createCategory(request);
@@ -115,7 +115,7 @@ class CategoryServiceImplTest {
         );
         assertEquals("Category name must be unique.", exception.getMessage());
         verify(categoryRepository).isCategoryNameUnique(CATEGORY_NAME, null);
-        verifyNoCategorySave();
+        this.verifyNoCategorySave();
     }
 
     @Test
@@ -128,7 +128,7 @@ class CategoryServiceImplTest {
         );
         assertEquals("Category request cannot be null", exception.getMessage());
         verify(categoryRepository, never()).isCategoryNameUnique(anyString(), anyLong());
-        verifyNoCategorySave();
+        this.verifyNoCategorySave();
     }
 
     @Test
@@ -171,7 +171,7 @@ class CategoryServiceImplTest {
         Category updatedCategory = setupCategory(CATEGORY_ID, NEW_CATEGORY_NAME);
         CategoryDTO dto = setupCategoryDTO(CATEGORY_ID, NEW_CATEGORY_NAME);
         when(categoryRepository.findById(CATEGORY_ID)).thenReturn(Optional.of(defaultCategory));
-        setupSuccessfulCategoryMocks(request, updatedCategory, dto, CATEGORY_ID);
+        this.setupSuccessfulCategoryMocks(request, updatedCategory, dto, CATEGORY_ID);
 
         // Act
         CategoryDTO result = categoryService.updateCategory(CATEGORY_ID, request);
@@ -201,7 +201,7 @@ class CategoryServiceImplTest {
         assertEquals("Category not found with ID: " + CATEGORY_ID, exception.getMessage());
         verify(categoryRepository).findById(CATEGORY_ID);
         verify(categoryRepository, never()).isCategoryNameUnique(anyString(), anyLong());
-        verifyNoCategorySave();
+        this.verifyNoCategorySave();
     }
 
     @Test
@@ -220,7 +220,7 @@ class CategoryServiceImplTest {
         assertEquals("Category name must be unique.", exception.getMessage());
         verify(categoryRepository).findById(CATEGORY_ID);
         verify(categoryRepository).isCategoryNameUnique(NEW_CATEGORY_NAME, CATEGORY_ID);
-        verifyNoCategorySave();
+        this.verifyNoCategorySave();
     }
 
     @Test
@@ -237,7 +237,7 @@ class CategoryServiceImplTest {
         assertEquals("Category ID cannot be null", exception.getMessage());
         verify(categoryRepository, never()).findById(anyLong());
         verify(categoryRepository, never()).isCategoryNameUnique(anyString(), anyLong());
-        verifyNoCategorySave();
+        this.verifyNoCategorySave();
     }
 
     @Test
@@ -251,7 +251,7 @@ class CategoryServiceImplTest {
         assertEquals("Category request cannot be null", exception.getMessage());
         verify(categoryRepository, never()).findById(anyLong());
         verify(categoryRepository, never()).isCategoryNameUnique(anyString(), anyLong());
-        verifyNoCategorySave();
+        this.verifyNoCategorySave();
     }
 
     @Test
