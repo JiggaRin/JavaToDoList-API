@@ -51,7 +51,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public TaskDTO createTask(CreateTaskRequest request) {
         log.debug("Received task creation request");
-        validateTaskRequest(request, "Task request cannot be null");
+        validateTaskRequest(request, "Task request cannot be null.");
 
         User user = getAuthenticatedUser();
         log.debug("Creating task for user: {}", user.getUsername());
@@ -88,7 +88,7 @@ public class TaskServiceImpl implements TaskService {
     public TaskDTO updateTask(Long taskId, UpdateTaskRequest request) {
         log.debug("Received request to update task with ID: {}", taskId);
         validateTaskId(taskId);
-        validateTaskRequest(request, "Task request cannot be null");
+        validateTaskRequest(request, "Task request cannot be null.");
 
         Task existingTask = findTaskById(taskId);
         User user = getAuthenticatedUser();
@@ -123,7 +123,7 @@ public class TaskServiceImpl implements TaskService {
     public TaskDTO updateTaskStatus(Long taskId, TaskStatusUpdateRequest request) {
         log.debug("Received request to update status for task with ID: {}", taskId);
         validateTaskId(taskId);
-        validateTaskRequest(request, "Task Status Update request cannot be null");
+        validateTaskRequest(request, "Task Status Update request cannot be null.");
 
         Task existingTask = findTaskById(taskId);
         if (request.getStatus() == Status.DONE) {
@@ -180,7 +180,7 @@ public class TaskServiceImpl implements TaskService {
         validateTaskId(taskId);
         if (username == null) {
             log.warn("Null username provided for ownership check of task ID: {}", taskId);
-            throw new IllegalArgumentException("Username cannot be null");
+            throw new IllegalArgumentException("Username cannot be null.");
         }
 
         Task task = findTaskById(taskId);
@@ -219,11 +219,11 @@ public class TaskServiceImpl implements TaskService {
     private void validateSortParameters(String sortBy, String direction) {
         if (sortBy == null) {
             log.warn("Sort by field is null");
-            throw new IllegalArgumentException("Sort by field cannot be null");
+            throw new IllegalArgumentException("Sort by field cannot be null.");
         }
         if (direction == null) {
             log.warn("Sort direction is null");
-            throw new IllegalArgumentException("Sort direction cannot be null");
+            throw new IllegalArgumentException("Sort direction cannot be null.");
         }
     }
 
