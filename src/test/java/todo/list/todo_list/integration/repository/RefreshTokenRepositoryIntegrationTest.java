@@ -24,7 +24,16 @@ import todo.list.todo_list.repository.RefreshTokenRepository;
 @ActiveProfiles("test")
 class RefreshTokenRepositoryIntegrationTest {
 
-    private final String username = "testuser";
+    private static final String USERNAME = "testuser";
+    private static final String USERNAME_2 = "testuser2";
+    private static final String REFRESH_TOKEN = "valid-token";
+    private static final String REFRESH_TOKEN_2 = "token2";
+    private static final String NON_EXISTENT_TOKEN = "non-existed-token";
+    private static final String NON_EXISTENT_USERNAME = "non-existed-username";
+    private static final long EXPIRATION_SECONDS = 604800; // 7 days
+    private static final Instant defaultExpiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(EXPIRATION_SECONDS);
+    ;
+
 
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
@@ -39,86 +48,93 @@ class RefreshTokenRepositoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("Save Refresh Token with valid data persists and returns Refresh Token")
+    @DisplayName("Save Refresh Token with valid data persists and returns token")
     void saveRefreshToken_validData_successfulSave() {
-        Instant expiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(604800);
-        RefreshToken refreshToken = this.setupRefreshToken("valid-token", this.username, expiration);
+        // Arrange
+        RefreshToken refreshToken = setupRefreshToken(REFRESH_TOKEN, USERNAME, defaultExpiration);
 
+        // Act
         RefreshToken savedRefreshToken = refreshTokenRepository.save(refreshToken);
 
-        assertNotNull(savedRefreshToken.getId());
-        assertEquals("valid-token", savedRefreshToken.getRefreshToken());
-        assertEquals(this.username, savedRefreshToken.getUsername());
-        assertEquals(expiration, savedRefreshToken.getExpiration());
+        // Assert
+        assertNotNull(savedRefreshToken.getId(), "Token ID should be generated");
+        assertEquals(REFRESH_TOKEN, savedRefreshToken.getRefreshToken(), "Token value should match");
+        assertEquals(USERNAME, savedRefreshToken.getUsername(), "Username should match");
+        assertEquals(defaultExpiration, savedRefreshToken.getExpiration(), "Expiration should match");
     }
 
     @Test
-    @DisplayName("Find by Refresh Token with valid token persists and returns Refresh Token")
+    @DisplayName("Find Refresh Token by valid token returns token")
     void findByRefreshToken_validToken_returnsToken() {
-        Instant expiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(604800);
-        RefreshToken refreshToken = this.setupRefreshToken("valid-token", this.username, expiration);
-
-        RefreshToken savedRefreshToken = refreshTokenRepository.save(refreshToken);
-
-        Optional<RefreshToken> result = refreshTokenRepository.findByRefreshToken(savedRefreshToken.getRefreshToken());
-
-        assertTrue(result.isPresent());
-        assertEquals("valid-token", result.get().getRefreshToken());
-        assertEquals(this.username, result.get().getUsername());
-        assertEquals(expiration, result.get().getExpiration());
-    }
-
-    @Test
-    @DisplayName("Find by Refresh Token with token which is not existed")
-    void findByRefreshToken_notExists_returnsEmpty() {
-        Optional<RefreshToken> result = refreshTokenRepository.findByRefreshToken("non-existed-token");
-
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    @DisplayName("Find by Username with valid data returns token")
-    void findByUsername_validData_returnsToken() {
-        Instant expiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(604800);
-        RefreshToken refreshToken = this.setupRefreshToken("valid-token", this.username, expiration);
-
-        RefreshToken savedRefreshToken = refreshTokenRepository.save(refreshToken);
-
-        Optional<RefreshToken> result = refreshTokenRepository.findByUsername(savedRefreshToken.getUsername());
-
-        assertTrue(result.isPresent());
-        assertEquals("valid-token", result.get().getRefreshToken());
-        assertEquals(this.username, result.get().getUsername());
-        assertEquals(expiration, result.get().getExpiration());
-    }
-
-    @Test
-    @DisplayName("Find by Username with username which is not existed")
-    void findByUsername_notExists_returnsEmpty() {
-        Optional<RefreshToken> result = refreshTokenRepository.findByUsername("non-existed-username");
-
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    @DisplayName("Delete by Username with valid data deletes token")
-    void deleteByUsername_validData_successfulDelete() {
-        Instant expiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(604800);
-        RefreshToken refreshToken = this.setupRefreshToken("valid-token", this.username, expiration);
+        // Arrange
+        RefreshToken refreshToken = setupRefreshToken(REFRESH_TOKEN, USERNAME, defaultExpiration);
         refreshTokenRepository.save(refreshToken);
 
-        refreshTokenRepository.deleteByUsername(this.username);
-        Optional<RefreshToken> result = refreshTokenRepository.findByUsername(this.username);
+        // Act
+        Optional<RefreshToken> result = refreshTokenRepository.findByRefreshToken(REFRESH_TOKEN);
 
-        assertTrue(result.isEmpty());
+        // Assert
+        assertTrue(result.isPresent(), "Token should be found");
+        assertEquals(REFRESH_TOKEN, result.get().getRefreshToken(), "Token value should match");
+        assertEquals(USERNAME, result.get().getUsername(), "Username should match");
+        assertEquals(defaultExpiration, result.get().getExpiration(), "Expiration should match");
     }
 
     @Test
-    @DisplayName("Save Refresh Token with NULL Refresh Token cause DataIntegrityViolationException")
+    @DisplayName("Find Refresh Token by non-existent token returns empty")
+    void findByRefreshToken_nonExistentToken_returnsEmpty() {
+        // Act & Assert
+        Optional<RefreshToken> result = refreshTokenRepository.findByRefreshToken(NON_EXISTENT_TOKEN);
+        assertTrue(result.isEmpty(), "Non-existent token should return empty");
+    }
+
+    @Test
+    @DisplayName("Find Refresh Token by valid username returns token")
+    void findByUsername_validUsername_returnsToken() {
+        // Arrange
+        RefreshToken refreshToken = setupRefreshToken(REFRESH_TOKEN, USERNAME, defaultExpiration);
+        refreshTokenRepository.save(refreshToken);
+
+        // Act
+        Optional<RefreshToken> result = refreshTokenRepository.findByUsername(USERNAME);
+
+        // Assert
+        assertTrue(result.isPresent(), "Token should be found");
+        assertEquals(REFRESH_TOKEN, result.get().getRefreshToken(), "Token value should match");
+        assertEquals(USERNAME, result.get().getUsername(), "Username should match");
+        assertEquals(defaultExpiration, result.get().getExpiration(), "Expiration should match");
+    }
+
+    @Test
+    @DisplayName("Find Refresh Token by non-existent username returns empty")
+    void findByUsername_nonExistentUsername_returnsEmpty() {
+        // Act & Assert
+        Optional<RefreshToken> result = refreshTokenRepository.findByUsername(NON_EXISTENT_USERNAME);
+        assertTrue(result.isEmpty(), "Non-existent username should return empty");
+    }
+
+    @Test
+    @DisplayName("Delete Refresh Token by valid username deletes token")
+    void deleteByUsername_validUsername_successfulDelete() {
+        // Arrange
+        RefreshToken refreshToken = setupRefreshToken(REFRESH_TOKEN, USERNAME, defaultExpiration);
+        refreshTokenRepository.save(refreshToken);
+
+        // Act
+        refreshTokenRepository.deleteByUsername(USERNAME);
+
+        // Assert
+        Optional<RefreshToken> result = refreshTokenRepository.findByUsername(USERNAME);
+        assertTrue(result.isEmpty(), "Token should be deleted");
+    }
+
+    @Test
+    @DisplayName("Save Refresh Token with null token throws DataIntegrityViolationException")
     void saveRefreshToken_nullToken_ShouldThrowException() {
-        Instant expiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(604800);
-        RefreshToken refreshToken = this.setupRefreshToken(null, this.username, expiration);
+        // Arrange
+        RefreshToken refreshToken = setupRefreshToken(null, USERNAME, defaultExpiration);
 
+        // Act & Assert
         try {
             refreshTokenRepository.saveAndFlush(refreshToken);
             fail("Expected DataIntegrityViolationException but none was thrown");
@@ -128,11 +144,12 @@ class RefreshTokenRepositoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("Save Refresh Token with NULL Username cause DataIntegrityViolationException")
-    void saveRefreshToken_nullUsername_ShouldThrowException() {
-        Instant expiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(604800);
-        RefreshToken refreshToken = this.setupRefreshToken("valid-token", null, expiration);
+    @DisplayName("Save Refresh Token with null username throws DataIntegrityViolationException")
+    void saveRefreshToken_nullUsername_throwsException() {
+        // Arrange
+        RefreshToken refreshToken = setupRefreshToken(REFRESH_TOKEN, null, defaultExpiration);
 
+        // Act & Assert
         try {
             refreshTokenRepository.saveAndFlush(refreshToken);
             fail("Expected DataIntegrityViolationException but none was thrown");
@@ -142,10 +159,12 @@ class RefreshTokenRepositoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("Save Refresh Token with NULL Expiration value cause DataIntegrityViolationException")
-    void saveRefreshToken_nullExpiration_ShouldThrowException() {
-        RefreshToken refreshToken = this.setupRefreshToken("valid-token", this.username, null);
+    @DisplayName("Save Refresh Token with null expiration throws DataIntegrityViolationException")
+    void saveRefreshToken_nullExpiration_throwsException() {
+        // Arrange
+        RefreshToken refreshToken = setupRefreshToken(REFRESH_TOKEN, USERNAME, null);
 
+        // Act & Assert
         try {
             refreshTokenRepository.saveAndFlush(refreshToken);
             fail("Expected DataIntegrityViolationException but none was thrown");
@@ -155,14 +174,14 @@ class RefreshTokenRepositoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("Save Refresh Token with Duplicate Token cause DataIntegrityViolationException")
-    void saveRefreshToken_duplicateToken_ShouldThrowException() {
-        Instant expiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(604800);
-        RefreshToken refreshToken = this.setupRefreshToken("valid-token", this.username, expiration);
-        RefreshToken duplicateRefreshToken = this.setupRefreshToken("valid-token", "testuser2", expiration);
-
+    @DisplayName("Save Refresh Token with duplicate token throws DataIntegrityViolationException")
+    void saveRefreshToken_duplicateToken_throwsException() {
+        // Arrange
+        RefreshToken refreshToken = setupRefreshToken(REFRESH_TOKEN, USERNAME, defaultExpiration);
+        RefreshToken duplicateRefreshToken = setupRefreshToken(REFRESH_TOKEN, USERNAME_2, defaultExpiration);
         refreshTokenRepository.save(refreshToken);
 
+        // Act & Assert
         try {
             refreshTokenRepository.saveAndFlush(duplicateRefreshToken);
             fail("Expected DataIntegrityViolationException but none was thrown");
@@ -172,14 +191,14 @@ class RefreshTokenRepositoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("Save Refresh Token with duplicate Username throws DataIntegrityViolationException")
-    void saveRefreshToken_duplicateUsername_ShouldThrowException() {
-        Instant expiration = Instant.now().truncatedTo(ChronoUnit.MILLIS).plusSeconds(604800);
-        RefreshToken refreshToken = this.setupRefreshToken("token1", this.username, expiration);
-        RefreshToken duplicateUsernameToken = this.setupRefreshToken("token2", this.username, expiration);
-
+    @DisplayName("Save Refresh Token with duplicate username throws DataIntegrityViolationException")
+    void saveRefreshToken_duplicateUsername_throwsException() {
+        // Arrange
+        RefreshToken refreshToken = setupRefreshToken(REFRESH_TOKEN, USERNAME, defaultExpiration);
+        RefreshToken duplicateUsernameToken = setupRefreshToken(REFRESH_TOKEN_2, USERNAME, defaultExpiration);
         refreshTokenRepository.save(refreshToken);
 
+        // Act & Assert
         try {
             refreshTokenRepository.saveAndFlush(duplicateUsernameToken);
             fail("Expected DataIntegrityViolationException but none was thrown");
