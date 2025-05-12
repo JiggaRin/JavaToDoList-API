@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,17 +38,20 @@ import todo.list.todo_list.repository.UserRepository;
 @ActiveProfiles("test")
 class TaskRepositoryIntegrationTest {
 
-    private final String username = "testuser";
-
-    private final String username2 = "testuser2";
-
-    private final String username3 = "testuser3";
-
-    private final String taskTitle = "Task Title";
-
-    private final String taskTitleOne = "Task One";
-
-    private final String taskTitleTwo = "Task Two";
+    private static final String USERNAME_1 = "testuser";
+    private static final String USERNAME_2 = "testuser2";
+    private static final String USERNAME_3 = "testuser3";
+    private static final String TASK_TITLE = "Task Title";
+    private static final String TASK_TITLE_ONE = "Task One";
+    private static final String TASK_TITLE_TWO = "Task Two";
+    private static final String PASSWORD = "Password123!";
+    private static final String EMAIL_DOMAIN = "@example.com";
+    private static final String CATEGORY_NAME = "Category A";
+    private static final int PAGE_SIZE = 10;
+    private static final String SEARCH_TERM = "one";
+    private static final String NON_MATCHING_TITLE = "Another Task";
+    private static final String USER2_TASK_TITLE = "Task One belongs testuser2";
+    private static final String CHILD_TASK_TITLE = "Child Task";
 
     @Autowired
     private TaskRepository taskRepository;
@@ -58,17 +62,17 @@ class TaskRepositoryIntegrationTest {
     @Autowired
     private CategoryRepository categoryRepository;
 
-    private Task setupTask(String title, Set<Category> categories, User owner, Status status) {
-        Task task = new Task(null, null, owner, title, "Task Description", status, LocalDateTime.now(), LocalDateTime.now(), null);
-        task.setCategories(categories);
+    private Pageable defaultPageable;
 
-        return task;
+    @BeforeEach
+    @SuppressWarnings("unused")
+    void setup() {
+        defaultPageable = PageRequest.of(0, PAGE_SIZE);
     }
 
     private User setupUser(String username) {
-        User user = new User(username, "Password123!", null);
-        user.setEmail(username + "@example.com");
-
+        User user = new User(username, PASSWORD, null);
+        user.setEmail(username + EMAIL_DOMAIN);
         return user;
     }
 
@@ -76,44 +80,64 @@ class TaskRepositoryIntegrationTest {
         Category category = new Category(categoryName);
         category.setCreatedAt(LocalDateTime.now());
         category.setUpdatedAt(LocalDateTime.now());
-
         return category;
+    }
+
+    private Task setupTask(String title, Set<Category> categories, User owner, Status status) {
+        Task task = new Task(null, null, owner, title, "Task Description", status, LocalDateTime.now(), LocalDateTime.now(), null);
+        task.setCategories(categories);
+        return task;
+    }
+
+    private void assertTaskTitlesContain(List<Task> tasks, List<String> expectedTitles) {
+        List<String> actualTitles = tasks.stream().map(Task::getTitle).collect(Collectors.toList());
+        expectedTitles.forEach(title -> assertTrue(actualTitles.contains(title), "Should contain " + title));
+    }
+
+    private void assertPageMetadata(Page<?> page, int expectedContentSize, long expectedTotalElements, int expectedTotalPages, int expectedPageNumber) {
+        assertEquals(expectedContentSize, page.getContent().size(), "Page content size should match");
+        assertEquals(expectedTotalElements, page.getTotalElements(), "Total elements should match");
+        assertEquals(expectedTotalPages, page.getTotalPages(), "Total pages should match");
+        assertEquals(expectedPageNumber, page.getNumber(), "Page number should match");
+        assertEquals(PAGE_SIZE, page.getSize(), "Page size should be " + PAGE_SIZE);
     }
 
     @Test
     @DisplayName("Save Task with valid data persists and returns Task")
     void saveTask_validData_successfulSave() {
-        User user = this.setupUser(this.username);
+        // Arrange
+        User user = setupUser(USERNAME_1);
         User savedUser = userRepository.save(user);
-
-        Category category = this.setupCategory("Category A");
+        Category category = setupCategory(CATEGORY_NAME);
         Category savedCategory = categoryRepository.save(category);
+        Set<Category> categories = new HashSet<>(Set.of(savedCategory));
+        Task task = setupTask(TASK_TITLE, categories, savedUser, Status.TODO);
 
-        Set<Category> categories = new HashSet<>();
-        categories.add(savedCategory);
-
-        Task task = this.setupTask(this.taskTitle, categories, savedUser, Status.TODO);
-
+        // Act
         Task savedTask = taskRepository.save(task);
 
-        assertNotNull(savedTask.getId());
-        assertEquals(this.taskTitle, savedTask.getTitle());
-        assertEquals(savedUser.getId(), savedTask.getOwner().getId());
-        assertEquals(Status.TODO, savedTask.getStatus());
-        assertEquals(1, savedTask.getCategories().size());
-        assertTrue(savedTask.getCategories().contains(savedCategory));
-        assertNotNull(savedTask.getCreatedAt());
-        assertNotNull(savedTask.getUpdatedAt());
+        // Assert
+        assertNotNull(savedTask.getId(), "Task ID should be generated");
+        assertEquals(TASK_TITLE, savedTask.getTitle(), "Title should match");
+        assertEquals(savedUser.getId(), savedTask.getOwner().getId(), "Owner ID should match");
+        assertEquals(Status.TODO, savedTask.getStatus(), "Status should match");
+        assertEquals(1, savedTask.getCategories().size(), "Should have one category");
+        assertTrue(savedTask.getCategories().contains(savedCategory), "Should contain Category A");
+        assertNotNull(savedTask.getCreatedAt(), "Created timestamp should be set");
+        assertNotNull(savedTask.getUpdatedAt(), "Updated timestamp should be set");
     }
 
+    
+
     @Test
-    @DisplayName("Save Task with NULL Title throws DataIntegrityViolationException")
-    void saveTask_nullTitle_ShouldThrowException() {
-        User user = this.setupUser(this.username);
+    @DisplayName("Save Task with null title throws DataIntegrityViolationException")
+    void saveTask_nullTitle_throwsException() {
+        // Arrange
+        User user = setupUser(USERNAME_1);
         User savedUser = userRepository.save(user);
+        Task task = setupTask(null, new HashSet<>(), savedUser, Status.TODO);
 
-        Task task = this.setupTask(null, new HashSet<>(), savedUser, Status.TODO);
-
+        // Act & Assert
         try {
             taskRepository.saveAndFlush(task);
             fail("Expected DataIntegrityViolationException but none was thrown");
@@ -123,10 +147,12 @@ class TaskRepositoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("Save Task with NULL Owner throws DataIntegrityViolationException")
-    void saveTask_nullOwner_ShouldThrowException() {
-        Task task = this.setupTask(this.taskTitle, new HashSet<>(), null, Status.TODO);
+    @DisplayName("Save Task with null owner throws DataIntegrityViolationException")
+    void saveTask_nullOwner_throwsException() {
+        // Arrange
+        Task task = setupTask(TASK_TITLE, new HashSet<>(), null, Status.TODO);
 
+        // Act & Assert
         try {
             taskRepository.saveAndFlush(task);
             fail("Expected DataIntegrityViolationException but none was thrown");
@@ -136,13 +162,14 @@ class TaskRepositoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("Save Task with NULL Status throws DataIntegrityViolationException")
-    void saveTask_nullStatus_ShouldThrowException() {
-        User user = this.setupUser(this.username);
+    @DisplayName("Save Task with null status throws DataIntegrityViolationException")
+    void saveTask_nullStatus_throwsException() {
+        // Arrange
+        User user = setupUser(USERNAME_1);
         User savedUser = userRepository.save(user);
+        Task task = setupTask(TASK_TITLE, new HashSet<>(), savedUser, null);
 
-        Task task = this.setupTask(this.taskTitle, new HashSet<>(), savedUser, null);
-
+        // Act & Assert
         try {
             taskRepository.saveAndFlush(task);
             fail("Expected DataIntegrityViolationException but none was thrown");
@@ -152,525 +179,471 @@ class TaskRepositoryIntegrationTest {
     }
 
     @Test
-    @DisplayName("Save Task with valid data and set Parent Task returns Task")
+    @DisplayName("Save Task with parent task persists and returns Task")
     void saveTask_setParentTask_successfulSave() {
-        User user = this.setupUser(this.username);
+        // Arrange
+        User user = setupUser(USERNAME_1);
         User savedUser = userRepository.save(user);
-
-        Task parentTask = this.setupTask("Parent Task Title", new HashSet<>(), savedUser, Status.TODO);
+        Task parentTask = setupTask("Parent Task Title", new HashSet<>(), savedUser, Status.TODO);
         Task savedParentTask = taskRepository.save(parentTask);
-
-        Task childTask = this.setupTask(this.taskTitle, new HashSet<>(), savedUser, Status.TODO);
+        Task childTask = setupTask(TASK_TITLE, new HashSet<>(), savedUser, Status.TODO);
         childTask.setParentTask(savedParentTask);
 
-        taskRepository.save(childTask);
+        // Act
+        Task savedChildTask = taskRepository.save(childTask);
 
-        assertNotNull(childTask.getId());
-        assertEquals(this.taskTitle, childTask.getTitle());
-        assertEquals(savedUser.getId(), childTask.getOwner().getId());
-        assertEquals(Status.TODO, childTask.getStatus());
-        assertEquals(savedParentTask.getId(), childTask.getParentTask().getId());
-        assertNotNull(childTask.getCreatedAt());
-        assertNotNull(childTask.getUpdatedAt());
+        // Assert
+        assertNotNull(savedChildTask.getId(), "Task ID should be generated");
+        assertEquals(TASK_TITLE, savedChildTask.getTitle(), "Title should match");
+        assertEquals(savedUser.getId(), savedChildTask.getOwner().getId(), "Owner ID should match");
+        assertEquals(Status.TODO, savedChildTask.getStatus(), "Status should match");
+        assertEquals(savedParentTask.getId(), savedChildTask.getParentTask().getId(), "Parent task ID should match");
+        assertNotNull(savedChildTask.getCreatedAt(), "Created timestamp should be set");
+        assertNotNull(savedChildTask.getUpdatedAt(), "Updated timestamp should be set");
     }
 
     @Test
-    @DisplayName("Find Parent Tasks by User ID returns Matching Tasks")
-    void findParentTasks_byUserId_successfulFind() {
-        User user1 = this.setupUser(this.username);
+    @DisplayName("Find Parent Tasks by User ID returns Tasks")
+    void findParentTasks_byUserId_returnsTasks() {
+        // Arrange
+        User user1 = setupUser(USERNAME_1);
         User savedUser1 = userRepository.save(user1);
-
-        Task user1Task1 = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser1, Status.TODO);
-        Task user1Task2 = this.setupTask(this.taskTitleTwo, new HashSet<>(), savedUser1, Status.TODO);
-        Task savedUser1Task1 = taskRepository.save(user1Task1);
-        taskRepository.save(user1Task2);
-
-        User user2 = this.setupUser(this.username2);
+        User user2 = setupUser(USERNAME_2);
         User savedUser2 = userRepository.save(user2);
-        Task user2Task = this.setupTask("User2 Task", new HashSet<>(), savedUser2, Status.TODO);
+        Task task1 = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser1, Status.TODO);
+        Task task2 = setupTask(TASK_TITLE_TWO, new HashSet<>(), savedUser1, Status.TODO);
+        Task savedTask1 = taskRepository.save(task1);
+        taskRepository.save(task2);
+        Task user2Task = setupTask(USER2_TASK_TITLE, new HashSet<>(), savedUser2, Status.TODO);
         taskRepository.save(user2Task);
+        Task childTask = setupTask(CHILD_TASK_TITLE, new HashSet<>(), savedUser1, Status.TODO);
+        childTask.setParentTask(savedTask1);
+        taskRepository.save(childTask);
 
-        Task user1ChildTask = this.setupTask("Child " + this.taskTitle, new HashSet<>(), savedUser1, Status.TODO);
-        user1ChildTask.setParentTask(savedUser1Task1);
-        taskRepository.save(user1ChildTask);
+        // Act
+        Page<Task> result = taskRepository.findParentTasks(savedUser1.getId(), null, defaultPageable);
 
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Task> result = taskRepository.findParentTasks(savedUser1.getId(), null, pageable);
-
-        assertEquals(2, result.getContent().size(), "Should return 2 parent tasks for testuser");
-        List<String> taskTitles = result.getContent().stream()
-                .map(Task::getTitle)
-                .collect(Collectors.toList());
-        assertTrue(taskTitles.contains(this.taskTitleOne), "Should contain Task One");
-        assertTrue(taskTitles.contains(this.taskTitleTwo), "Should contain Task Two");
+        // Assert
+        assertPageMetadata(result, 2, 2, 1, 0);
+        assertTaskTitlesContain(result.getContent(), List.of(TASK_TITLE_ONE, TASK_TITLE_TWO));
         result.getContent().forEach(task -> {
-            assertEquals(savedUser1.getId(), task.getOwner().getId(), "Task should belong to testuser");
+            assertEquals(savedUser1.getId(), task.getOwner().getId(), "Task should belong to user1");
             assertNull(task.getParentTask(), "Task should have no parent");
         });
-        assertEquals(2, result.getTotalElements(), "Total elements should be 2");
-        assertEquals(1, result.getTotalPages(), "Total pages should be 1");
-        assertEquals(0, result.getNumber(), "Page number should be 0");
-        assertEquals(10, result.getSize(), "Page size should be 10");
     }
 
     @Test
-    @DisplayName("Find Parent Tasks by User ID and Search Term returns Matching Tasks")
-    void findParentTasks_withSearch_successfulFind() {
-        User user1 = this.setupUser(this.username);
+    @DisplayName("Find Parent Tasks by User ID with search term returns Tasks")
+    void findParentTasks_withSearch_returnsTasks() {
+        // Arrange
+        User user1 = setupUser(USERNAME_1);
         User savedUser1 = userRepository.save(user1);
-
-        Task parentTask1 = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser1, Status.TODO);
-        Task parentTask2 = this.setupTask(this.taskTitleTwo, new HashSet<>(), savedUser1, Status.TODO);
-        Task nonMatchingTask = this.setupTask("Another Task", new HashSet<>(), savedUser1, Status.TODO);
-
-        taskRepository.save(parentTask1);
-        taskRepository.save(parentTask2);
+        User user2 = setupUser(USERNAME_2);
+        User savedUser2 = userRepository.save(user2);
+        Task task1 = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser1, Status.TODO);
+        Task task2 = setupTask(TASK_TITLE_TWO, new HashSet<>(), savedUser1, Status.TODO);
+        Task nonMatchingTask = setupTask(NON_MATCHING_TITLE, new HashSet<>(), savedUser1, Status.TODO);
+        Task savedTask1 = taskRepository.save(task1);
+        taskRepository.save(task2);
         taskRepository.save(nonMatchingTask);
-
-        Task childTask = this.setupTask("Child Task One", new HashSet<>(), savedUser1, Status.TODO);
-        childTask.setParentTask(parentTask1);
+        Task childTask = setupTask(CHILD_TASK_TITLE, new HashSet<>(), savedUser1, Status.TODO);
+        childTask.setParentTask(savedTask1);
         taskRepository.save(childTask);
-
-        User user2 = this.setupUser(this.username2);
-        User savedUser2 = userRepository.save(user2);
-
-        Task user2Task = this.setupTask("Task One belongs testuser2", new HashSet<>(), savedUser2, Status.TODO);
+        Task user2Task = setupTask(USER2_TASK_TITLE, new HashSet<>(), savedUser2, Status.TODO);
         taskRepository.save(user2Task);
 
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Task> result = taskRepository.findParentTasks(savedUser1.getId(), "one", pageable);
+        // Act
+        Page<Task> result = taskRepository.findParentTasks(savedUser1.getId(), SEARCH_TERM, defaultPageable);
 
-        assertEquals(1, result.getContent().size(), "Should return 1 parent task for user1");
-        assertEquals(this.taskTitleOne, result.getContent().get(0).getTitle(), "Should return Task One");
-        assertEquals(savedUser1.getId(), result.getContent().get(0).getOwner().getId(), "Task should belong to user1");
-        assertNull(result.getContent().get(0).getParentTask(), "Task should have no parent");
-        assertEquals(1, result.getTotalElements(), "Total elements should be 1");
-        assertEquals(1, result.getTotalPages(), "Total pages should be 1");
-        assertEquals(0, result.getNumber(), "Page number should be 0");
-        assertEquals(10, result.getSize(), "Page size should be 10");
+        // Assert
+        assertPageMetadata(result, 1, 1, 1, 0);
+        assertTaskTitlesContain(result.getContent(), List.of(TASK_TITLE_ONE));
+        result.getContent().forEach(task -> {
+            assertEquals(savedUser1.getId(), task.getOwner().getId(), "Task should belong to user1");
+            assertNull(task.getParentTask(), "Task should have no parent");
+        });
 
-        result = taskRepository.findParentTasks(savedUser1.getId(), "ONE", pageable);
-        assertEquals(1, result.getContent().size(), "Should return 1 parent task for user1 with uppercase search");
-        assertEquals(this.taskTitleOne, result.getContent().get(0).getTitle(), "Should return Task One with uppercase search");
+        // Act (uppercase search)
+        result = taskRepository.findParentTasks(savedUser1.getId(), SEARCH_TERM.toUpperCase(), defaultPageable);
+
+        // Assert (uppercase search)
+        assertPageMetadata(result, 1, 1, 1, 0);
+        assertTaskTitlesContain(result.getContent(), List.of(TASK_TITLE_ONE));
     }
 
     @Test
-    @DisplayName("Find Parent Tasks with User ID is NULL returns all Tasks")
-    void findParentTasks_withNullUserId_successfulFind() {
-        User user1 = this.setupUser(this.username);
+    @DisplayName("Find Parent Tasks with null User ID returns all Tasks")
+    void findParentTasks_withNullUserId_returnsTasks() {
+        // Arrange
+        User user1 = setupUser(USERNAME_1);
         User savedUser1 = userRepository.save(user1);
-
-        Task parentTask1 = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser1, Status.TODO);
-        Task parentTask2 = this.setupTask(this.taskTitleTwo, new HashSet<>(), savedUser1, Status.TODO);
-
-        taskRepository.save(parentTask1);
-        taskRepository.save(parentTask2);
-
-        Task childTask = this.setupTask("Child Task One", new HashSet<>(), savedUser1, Status.TODO);
-        childTask.setParentTask(parentTask1);
-        taskRepository.save(childTask);
-
-        User user2 = this.setupUser(this.username2);
+        User user2 = setupUser(USERNAME_2);
         User savedUser2 = userRepository.save(user2);
-
-        Task user2Task = this.setupTask("Task One belongs testuser2", new HashSet<>(), savedUser2, Status.TODO);
+        Task task1 = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser1, Status.TODO);
+        Task task2 = setupTask(TASK_TITLE_TWO, new HashSet<>(), savedUser1, Status.TODO);
+        Task savedTask1 = taskRepository.save(task1);
+        taskRepository.save(task2);
+        Task childTask = setupTask(CHILD_TASK_TITLE, new HashSet<>(), savedUser1, Status.TODO);
+        childTask.setParentTask(savedTask1);
+        taskRepository.save(childTask);
+        Task user2Task = setupTask(USER2_TASK_TITLE, new HashSet<>(), savedUser2, Status.TODO);
         taskRepository.save(user2Task);
 
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Task> result = taskRepository.findParentTasks(null, null, pageable);
+        // Act
+        Page<Task> result = taskRepository.findParentTasks(null, null, defaultPageable);
 
-        assertEquals(3, result.getContent().size(), "Should return 3 parent tasks");
-        List<String> taskTitles = result.getContent().stream()
-                .map(Task::getTitle)
-                .collect(Collectors.toList());
-        assertTrue(taskTitles.contains(this.taskTitleOne), "Should contain Task One");
-        assertTrue(taskTitles.contains(this.taskTitleTwo), "Should contain Task Two");
-        assertTrue(taskTitles.contains("Task One belongs testuser2"), "Should contain Task One belongs testuser2");
-        result.getContent().forEach(task
-                -> assertNull(task.getParentTask(), "Task should have no parent"));
-        assertEquals(3, result.getTotalElements(), "Total elements should be 3");
-        assertEquals(1, result.getTotalPages(), "Total pages should be 1");
-        assertEquals(0, result.getNumber(), "Page number should be 0");
-        assertEquals(10, result.getSize(), "Page size should be 10");
+        // Assert
+        assertPageMetadata(result, 3, 3, 1, 0);
+        assertTaskTitlesContain(result.getContent(), List.of(TASK_TITLE_ONE, TASK_TITLE_TWO, USER2_TASK_TITLE));
+        result.getContent().forEach(task -> assertNull(task.getParentTask(), "Task should have no parent"));
     }
 
     @Test
-    @DisplayName("Find Parent Tasks with User ID is NULL and Search Term returns Matching Tasks")
-    void findParentTasks_withNullUserIdAndSearch_successfulFind() {
-        User user1 = this.setupUser(this.username);
+    @DisplayName("Find Parent Tasks with null User ID and search term returns Tasks")
+    void findParentTasks_withNullUserIdAndSearch_returnsTasks() {
+        // Arrange
+        User user1 = setupUser(USERNAME_1);
         User savedUser1 = userRepository.save(user1);
-
-        Task parentTask1 = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser1, Status.TODO);
-        Task parentTask2 = this.setupTask(this.taskTitleTwo, new HashSet<>(), savedUser1, Status.TODO);
-        Task nonMatchingTask = this.setupTask("Another Task", new HashSet<>(), savedUser1, Status.TODO);
-        Task savedParentTask1 = taskRepository.save(parentTask1);
-        taskRepository.save(parentTask2);
+        User user2 = setupUser(USERNAME_2);
+        User savedUser2 = userRepository.save(user2);
+        Task task1 = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser1, Status.TODO);
+        Task task2 = setupTask(TASK_TITLE_TWO, new HashSet<>(), savedUser1, Status.TODO);
+        Task nonMatchingTask = setupTask(NON_MATCHING_TITLE, new HashSet<>(), savedUser1, Status.TODO);
+        Task savedTask1 = taskRepository.save(task1);
+        taskRepository.save(task2);
         taskRepository.save(nonMatchingTask);
-
-        Task childTask = this.setupTask("Child Task", new HashSet<>(), savedUser1, Status.TODO);
-        childTask.setParentTask(savedParentTask1);
+        Task childTask = setupTask(CHILD_TASK_TITLE, new HashSet<>(), savedUser1, Status.TODO);
+        childTask.setParentTask(savedTask1);
         taskRepository.save(childTask);
-
-        User user2 = this.setupUser(this.username2);
-        User savedUser2 = userRepository.save(user2);
-        Task user2Task = this.setupTask("Task One belongs testuser2", new HashSet<>(), savedUser2, Status.TODO);
+        Task user2Task = setupTask(USER2_TASK_TITLE, new HashSet<>(), savedUser2, Status.TODO);
         taskRepository.save(user2Task);
 
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Task> result = taskRepository.findParentTasks(null, "one", pageable);
+        // Act
+        Page<Task> result = taskRepository.findParentTasks(null, SEARCH_TERM, defaultPageable);
 
-        assertEquals(2, result.getContent().size(), "Should return 2 parent tasks");
-        List<String> taskTitles = result.getContent().stream()
-                .map(Task::getTitle)
-                .collect(Collectors.toList());
-        assertTrue(taskTitles.contains(this.taskTitleOne), "Should contain Task One");
-        assertTrue(taskTitles.contains("Task One belongs testuser2"), "Should contain Task One belongs testuser2");
-        result.getContent().forEach(task
-                -> assertNull(task.getParentTask(), "Task should have no parent"));
-        assertEquals(2, result.getTotalElements(), "Total elements should be 2");
-        assertEquals(1, result.getTotalPages(), "Total pages should be 1");
-        assertEquals(0, result.getNumber(), "Page number should be 0");
-        assertEquals(10, result.getSize(), "Page size should be 10");
+        // Assert
+        assertPageMetadata(result, 2, 2, 1, 0);
+        assertTaskTitlesContain(result.getContent(), List.of(TASK_TITLE_ONE, USER2_TASK_TITLE));
+        result.getContent().forEach(task -> assertNull(task.getParentTask(), "Task should have no parent"));
 
-        result = taskRepository.findParentTasks(null, "ONE", pageable);
-        assertEquals(2, result.getContent().size(), "Should return 2 parent tasks with uppercase search");
-        assertTrue(result.getContent().stream()
-                .map(Task::getTitle)
-                .collect(Collectors.toList())
-                .contains(this.taskTitleOne), "Should contain Task One with uppercase search");
-        assertTrue(result.getContent().stream()
-                .map(Task::getTitle)
-                .collect(Collectors.toList())
-                .contains("Task One belongs testuser2"), "Should contain Task One belongs testuser2 with uppercase search");
+        // Act (uppercase search)
+        result = taskRepository.findParentTasks(null, SEARCH_TERM.toUpperCase(), defaultPageable);
+
+        // Assert (uppercase search)
+        assertPageMetadata(result, 2, 2, 1, 0);
+        assertTaskTitlesContain(result.getContent(), List.of(TASK_TITLE_ONE, USER2_TASK_TITLE));
     }
 
     @Test
-    @DisplayName("Find Parent Tasks when No Parent Tasks Exist returns Empty Page")
+    @DisplayName("Find Parent Tasks when no parent tasks exist returns empty Page")
     void findParentTasks_noParentTasksExist_returnsEmptyPage() {
-        User user1 = this.setupUser(this.username);
+        // Arrange
+        User user1 = setupUser(USERNAME_1);
         User savedUser1 = userRepository.save(user1);
-
-        Task task1 = this.setupTask("Task 1", new HashSet<>(), savedUser1, Status.TODO);
-        Task task2 = this.setupTask("Task 2", new HashSet<>(), savedUser1, Status.TODO);
+        Task task1 = setupTask("Task 1", new HashSet<>(), savedUser1, Status.TODO);
+        Task task2 = setupTask("Task 2", new HashSet<>(), savedUser1, Status.TODO);
         Task savedTask1 = taskRepository.save(task1);
         Task savedTask2 = taskRepository.save(task2);
-
         savedTask1.setParentTask(savedTask2);
         savedTask2.setParentTask(savedTask1);
         taskRepository.save(savedTask1);
         taskRepository.save(savedTask2);
 
-        Pageable pageable = PageRequest.of(0, 10);
+        // Act
+        Page<Task> result = taskRepository.findParentTasks(null, null, defaultPageable);
 
-        Page<Task> result = taskRepository.findParentTasks(null, null, pageable);
+        // Assert
+        assertPageMetadata(result, 0, 0, 0, 0);
         assertTrue(result.getContent().isEmpty(), "Should return no parent tasks");
-        assertEquals(0, result.getTotalElements(), "Total elements should be 0");
-        assertEquals(0, result.getTotalPages(), "Total pages should be 0");
-        assertEquals(0, result.getNumber(), "Page number should be 0");
-        assertEquals(10, result.getSize(), "Page size should be 10");
 
-        result = taskRepository.findParentTasks(savedUser1.getId(), null, pageable);
+        // Act (user-specific)
+        result = taskRepository.findParentTasks(savedUser1.getId(), null, defaultPageable);
+
+        // Assert (user-specific)
+        assertPageMetadata(result, 0, 0, 0, 0);
         assertTrue(result.getContent().isEmpty(), "Should return no parent tasks for user1");
-        assertEquals(0, result.getTotalElements(), "Total elements should be 0");
-        assertEquals(0, result.getTotalPages(), "Total pages should be 0");
 
-        result = taskRepository.findParentTasks(null, "task", pageable);
+        // Act (with search)
+        result = taskRepository.findParentTasks(null, "task", defaultPageable);
+
+        // Assert (with search)
+        assertPageMetadata(result, 0, 0, 0, 0);
         assertTrue(result.getContent().isEmpty(), "Should return no parent tasks with search");
-        assertEquals(0, result.getTotalElements(), "Total elements should be 0");
-        assertEquals(0, result.getTotalPages(), "Total pages should be 0");
     }
 
     @Test
-    @DisplayName("Find Parent Tasks with More Than 10 Tasks Returns Two Pages")
+    @DisplayName("Find Parent Tasks with pagination returns two pages")
     void findParentTasks_paginationTwoPages() {
-        User user1 = this.setupUser(this.username);
+        // Arrange
+        User user1 = setupUser(USERNAME_1);
         User savedUser1 = userRepository.save(user1);
-        User user2 = this.setupUser(this.username2);
+        User user2 = setupUser(USERNAME_2);
         User savedUser2 = userRepository.save(user2);
-
         for (int i = 0; i < 15; i++) {
-            Task task = this.setupTask("Task " + i, new HashSet<>(), savedUser1, Status.TODO);
+            Task task = setupTask("Task " + i, new HashSet<>(), savedUser1, Status.TODO);
             taskRepository.save(task);
         }
-
-        Task parentTask = this.setupTask("Parent Task", new HashSet<>(), savedUser1, Status.TODO);
+        Task parentTask = setupTask("Parent Task", new HashSet<>(), savedUser1, Status.TODO);
         Task savedParentTask = taskRepository.save(parentTask);
-        Task childTask = this.setupTask("Child Task", new HashSet<>(), savedUser1, Status.TODO);
+        Task childTask = setupTask(CHILD_TASK_TITLE, new HashSet<>(), savedUser1, Status.TODO);
         childTask.setParentTask(savedParentTask);
         taskRepository.save(childTask);
-
-        Task user2Task = this.setupTask("User2 Task", new HashSet<>(), savedUser2, Status.TODO);
+        Task user2Task = setupTask("User2 Task", new HashSet<>(), savedUser2, Status.TODO);
         taskRepository.save(user2Task);
 
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("id"));
+        // Act (first page)
+        Pageable pageable = PageRequest.of(0, PAGE_SIZE, Sort.by("id"));
         Page<Task> result = taskRepository.findParentTasks(savedUser1.getId(), null, pageable);
 
-        assertEquals(10, result.getContent().size(), "First page should contain 10 tasks");
-        result.getContent().forEach(task
-                -> assertNull(task.getParentTask(), "Task should have no parent"));
-        result.getContent().forEach(task
-                -> assertEquals(savedUser1.getId(), task.getOwner().getId(), "Task should belong to saved User"));
-        List<String> taskTitles = result.getContent().stream()
-                .map(Task::getTitle)
-                .collect(Collectors.toList());
+        // Assert (first page)
+        assertPageMetadata(result, 10, 16, 2, 0);
+        result.getContent().forEach(task -> {
+            assertNull(task.getParentTask(), "Task should have no parent");
+            assertEquals(savedUser1.getId(), task.getOwner().getId(), "Task should belong to user1");
+        });
+        List<String> expectedFirstPageTitles = List.of("Task 0", "Task 1", "Task 2", "Task 3", "Task 4", "Task 5", "Task 6", "Task 7", "Task 8", "Task 9");
+        assertTaskTitlesContain(result.getContent(), expectedFirstPageTitles);
 
-        // Expected titles: Task 0, Task 1, Task 2, Task 3, Task 4, Task 5, Task 6, Task 7, Task 8, Task 9
-        for (int i = 0; i < 10; i++) {
-            assertTrue(taskTitles.contains("Task " + i), "First page should contain Task " + i);
-        }
-
-        assertEquals(16, result.getTotalElements(), "Total elements should be 16");
-        assertEquals(2, result.getTotalPages(), "Total pages should be 2");
-        assertEquals(0, result.getNumber(), "Page number should be 0");
-        assertEquals(10, result.getSize(), "Page size should be 10");
-
-        pageable = PageRequest.of(1, 10, Sort.by("id"));
+        // Act (second page)
+        pageable = PageRequest.of(1, PAGE_SIZE, Sort.by("id"));
         result = taskRepository.findParentTasks(savedUser1.getId(), null, pageable);
 
-        assertEquals(6, result.getContent().size(), "Second page should contain 6 tasks");
-        result.getContent().forEach(task
-                -> assertNull(task.getParentTask(), "Task should have no parent"));
-        result.getContent().forEach(task
-                -> assertEquals(savedUser1.getId(), task.getOwner().getId(), "Task should belong to saved User"));
-        taskTitles = result.getContent().stream()
-                .map(Task::getTitle)
-                .collect(Collectors.toList());
-
-        // Expected titles: Task 10, Task 11, Task 12, Task 13, Task 14, Parent Task
-        List<String> expectedSecondPageTitles = List.of(
-                "Task 10", "Task 11", "Task 12", "Task 13", "Task 14", "Parent Task"
-        );
-        for (String title : expectedSecondPageTitles) {
-            assertTrue(taskTitles.contains(title), "Second page should contain " + title);
-        }
-
-        assertEquals(16, result.getTotalElements(), "Total elements should be 16");
-        assertEquals(2, result.getTotalPages(), "Total pages should be 2");
-        assertEquals(1, result.getNumber(), "Page number should be 1");
-        assertEquals(10, result.getSize(), "Page size should be 10");
+        // Assert (second page)
+        assertPageMetadata(result, 6, 16, 2, 1);
+        result.getContent().forEach(task -> {
+            assertNull(task.getParentTask(), "Task should have no parent");
+            assertEquals(savedUser1.getId(), task.getOwner().getId(), "Task should belong to user1");
+        });
+        List<String> expectedSecondPageTitles = List.of("Task 10", "Task 11", "Task 12", "Task 13", "Task 14", "Parent Task");
+        assertTaskTitlesContain(result.getContent(), expectedSecondPageTitles);
     }
 
     @Test
-    @DisplayName("Find Task by Owner returns Matching Tasks")
-    void findByOwner_successfulFind() {
-        User user1 = this.setupUser(this.username);
+    @DisplayName("Find Tasks by Owner returns Tasks")
+    void findByOwner_returnsTasks() {
+        // Arrange
+        User user1 = setupUser(USERNAME_1);
         User savedUser1 = userRepository.save(user1);
-        User user2 = this.setupUser(this.username2);
+        User user2 = setupUser(USERNAME_2);
         User savedUser2 = userRepository.save(user2);
-        User user3 = this.setupUser(this.username3);
+        User user3 = setupUser(USERNAME_3);
         User savedUser3 = userRepository.save(user3);
-
-        Task parentTask1 = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser1, Status.TODO);
-        Task parentTask2 = this.setupTask(this.taskTitleTwo, new HashSet<>(), savedUser1, Status.IN_PROGRESS);
-        Task savedParentTask1 = taskRepository.save(parentTask1);
-        taskRepository.save(parentTask2);
-
-        Task childTask = this.setupTask("Child Task", new HashSet<>(), savedUser1, Status.DONE);
-        childTask.setParentTask(savedParentTask1);
+        Task task1 = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser1, Status.TODO);
+        Task task2 = setupTask(TASK_TITLE_TWO, new HashSet<>(), savedUser1, Status.IN_PROGRESS);
+        Task savedTask1 = taskRepository.save(task1);
+        taskRepository.save(task2);
+        Task childTask = setupTask(CHILD_TASK_TITLE, new HashSet<>(), savedUser1, Status.DONE);
+        childTask.setParentTask(savedTask1);
         taskRepository.save(childTask);
-
-        Task user2Task = this.setupTask("Task One belongs testuser2", new HashSet<>(), savedUser2, Status.TODO);
+        Task user2Task = setupTask(USER2_TASK_TITLE, new HashSet<>(), savedUser2, Status.TODO);
         taskRepository.save(user2Task);
 
+        // Act
         List<Task> result = taskRepository.findByOwner(savedUser1);
-        assertEquals(3, result.size(), "Should return 3 tasks");
-        result.forEach(task
-                -> assertEquals(savedUser1.getId(), task.getOwner().getId(),
-                        "Task '" + task.getTitle() + "' should belong to user1"));
-        List<String> taskTitles = result.stream()
-                .map(Task::getTitle)
-                .collect(Collectors.toList());
-        assertTrue(taskTitles.contains(this.taskTitleOne), "Should contain Task One");
-        assertTrue(taskTitles.contains(this.taskTitleTwo), "Should contain Task Two");
-        assertTrue(taskTitles.contains("Child Task"), "Should contain Child Task");
 
+        // Assert
+        assertEquals(3, result.size(), "Should return 3 tasks for user1");
+        result.forEach(task -> assertEquals(savedUser1.getId(), task.getOwner().getId(), "Task should belong to user1"));
+        assertTaskTitlesContain(result, List.of(TASK_TITLE_ONE, TASK_TITLE_TWO, CHILD_TASK_TITLE));
+
+        // Act (empty result)
         result = taskRepository.findByOwner(savedUser3);
+
+        // Assert (empty result)
         assertTrue(result.isEmpty(), "Should return no tasks for user3");
     }
 
     @Test
-    @DisplayName("Find Tasks by Owner Returns Empty List When No Tasks Exist")
-    void findByOwner_noTasksReturnsEmptyList() {
-        User user1 = this.setupUser(this.username);
+    @DisplayName("Find Tasks by Owner with no tasks returns empty List")
+    void findByOwner_noTasks_returnsEmptyList() {
+        // Arrange
+        User user1 = setupUser(USERNAME_1);
         User savedUser1 = userRepository.save(user1);
-        User user2 = this.setupUser(this.username2);
+        User user2 = setupUser(USERNAME_2);
         User savedUser2 = userRepository.save(user2);
-        User user3 = this.setupUser(this.username3);
+        User user3 = setupUser(USERNAME_3);
         User savedUser3 = userRepository.save(user3);
-
-        Task parentTask1 = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser1, Status.TODO);
-        Task parentTask2 = this.setupTask(this.taskTitleTwo, new HashSet<>(), savedUser1, Status.IN_PROGRESS);
-        Task savedParentTask1 = taskRepository.save(parentTask1);
-        taskRepository.save(parentTask2);
-
-        Task childTask = this.setupTask("Child Task", new HashSet<>(), savedUser1, Status.DONE);
-        childTask.setParentTask(savedParentTask1);
+        Task task1 = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser1, Status.TODO);
+        Task task2 = setupTask(TASK_TITLE_TWO, new HashSet<>(), savedUser1, Status.IN_PROGRESS);
+        Task savedTask1 = taskRepository.save(task1);
+        taskRepository.save(task2);
+        Task childTask = setupTask(CHILD_TASK_TITLE, new HashSet<>(), savedUser1, Status.DONE);
+        childTask.setParentTask(savedTask1);
         taskRepository.save(childTask);
 
+        // Act
         List<Task> result = taskRepository.findByOwner(savedUser2);
+
+        // Assert
         assertTrue(result.isEmpty(), "Should return no tasks for user2");
 
+        // Act
         result = taskRepository.findByOwner(savedUser3);
+
+        // Assert
         assertTrue(result.isEmpty(), "Should return no tasks for user3");
     }
 
     @Test
-    @DisplayName("Find Tasks by Owner Returns Matching Tasks for Multiple Owners")
-    void findByOwner_multipleOwners_returnsMatchingTasks() {
-        User user1 = this.setupUser(this.username);
+    @DisplayName("Find Tasks by Owner for multiple owners returns Tasks")
+    void findByOwner_multipleOwners_returnsTasks() {
+        // Arrange
+        User user1 = setupUser(USERNAME_1);
         User savedUser1 = userRepository.save(user1);
-        User user2 = this.setupUser(this.username2);
+        User user2 = setupUser(USERNAME_2);
         User savedUser2 = userRepository.save(user2);
-        User user3 = this.setupUser(this.username3);
+        User user3 = setupUser(USERNAME_3);
         User savedUser3 = userRepository.save(user3);
-
-        Task parentTask1 = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser1, Status.TODO);
-        Task savedParentTask1 = taskRepository.save(parentTask1);
-
-        Task childTask = this.setupTask("Child Task", new HashSet<>(), savedUser1, Status.DONE);
-        childTask.setParentTask(savedParentTask1);
-        taskRepository.save(childTask);
-
-        Task parentTask2 = this.setupTask(this.taskTitleTwo, new HashSet<>(), savedUser2, Status.IN_PROGRESS);
-        Task savedParentTask2 = taskRepository.save(parentTask2);
-
-        Task childTask2 = this.setupTask("Child Task Two", new HashSet<>(), savedUser2, Status.DONE);
-        childTask2.setParentTask(savedParentTask2);
+        Task task1 = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser1, Status.TODO);
+        Task savedTask1 = taskRepository.save(task1);
+        Task childTask1 = setupTask(CHILD_TASK_TITLE, new HashSet<>(), savedUser1, Status.DONE);
+        childTask1.setParentTask(savedTask1);
+        taskRepository.save(childTask1);
+        Task task2 = setupTask(TASK_TITLE_TWO, new HashSet<>(), savedUser2, Status.IN_PROGRESS);
+        Task savedTask2 = taskRepository.save(task2);
+        Task childTask2 = setupTask("Child Task Two", new HashSet<>(), savedUser2, Status.DONE);
+        childTask2.setParentTask(savedTask2);
         taskRepository.save(childTask2);
 
+        // Act
         List<Task> result = taskRepository.findByOwner(savedUser1);
+
+        // Assert
         assertEquals(2, result.size(), "Should return 2 tasks for user1");
-        result.forEach(task
-                -> assertEquals(savedUser1.getId(), task.getOwner().getId(),
-                        "Task '" + task.getTitle() + "' should belong to user1"));
-        List<String> taskTitles = result.stream()
-                .map(Task::getTitle)
-                .collect(Collectors.toList());
-        assertTrue(taskTitles.contains(this.taskTitleOne), "Should contain Task One");
-        assertTrue(taskTitles.contains("Child Task"), "Should contain Child Task");
+        result.forEach(task -> assertEquals(savedUser1.getId(), task.getOwner().getId(), "Task should belong to user1"));
+        assertTaskTitlesContain(result, List.of(TASK_TITLE_ONE, CHILD_TASK_TITLE));
 
+        // Act
         result = taskRepository.findByOwner(savedUser2);
-        assertEquals(2, result.size(), "Should return 2 tasks");
-        result.forEach(task
-                -> assertEquals(savedUser2.getId(), task.getOwner().getId(),
-                        "Task '" + task.getTitle() + "' should belong to user2"));
-        taskTitles = result.stream()
-                .map(Task::getTitle)
-                .collect(Collectors.toList());
-        assertTrue(taskTitles.contains(this.taskTitleTwo), "Should contain Task Two");
-        assertTrue(taskTitles.contains("Child Task Two"), "Should contain Child Task Two");
 
+        // Assert
+        assertEquals(2, result.size(), "Should return 2 tasks for user2");
+        result.forEach(task -> assertEquals(savedUser2.getId(), task.getOwner().getId(), "Task should belong to user2"));
+        assertTaskTitlesContain(result, List.of(TASK_TITLE_TWO, "Child Task Two"));
+
+        // Act
         result = taskRepository.findByOwner(savedUser3);
+
+        // Assert
         assertTrue(result.isEmpty(), "Should return no tasks for user3");
     }
 
     @Test
-    @DisplayName("Find By Parent Task ID with valid data returns Matching Parent Task(s)")
-    void findByParentTaskId_validData_returnsMatchingTask() {
-        User user = this.setupUser(this.username);
+    @DisplayName("Find Subtasks by Parent Task ID returns Tasks")
+    void findByParentTaskId_validData_returnsTasks() {
+        // Arrange
+        User user = setupUser(USERNAME_1);
         User savedUser = userRepository.save(user);
-
-        Task parentTask = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser, Status.TODO);
+        Task parentTask = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser, Status.TODO);
         Task savedParentTask = taskRepository.save(parentTask);
-
-        Task childTask1 = this.setupTask("Child Task One", new HashSet<>(), savedUser, Status.IN_PROGRESS);
+        Task childTask1 = setupTask("Child Task One", new HashSet<>(), savedUser, Status.IN_PROGRESS);
         childTask1.setParentTask(savedParentTask);
         taskRepository.save(childTask1);
-
-        Task childTask2 = this.setupTask("Child Task Two", new HashSet<>(), savedUser, Status.DONE);
+        Task childTask2 = setupTask("Child Task Two", new HashSet<>(), savedUser, Status.DONE);
         childTask2.setParentTask(savedParentTask);
         taskRepository.save(childTask2);
 
+        // Act
         List<Task> result = taskRepository.findByParentTaskId(savedParentTask.getId());
-        assertEquals(2, result.size(), "Should return 2 child tasks for user");
 
-        result.forEach(childTask
-                -> assertEquals(savedParentTask.getId(), childTask.getParentTask().getId(),
-                        "Task '" + childTask.getTitle() + "' should belong to Parent Task Task One"));
-        List<String> taskTitles = result.stream()
-                .map(Task::getTitle)
-                .collect(Collectors.toList());
-        assertTrue(taskTitles.contains("Child Task One"), "Should contain Child Task One");
-        assertTrue(taskTitles.contains("Child Task Two"), "Should contain Child Task Two");
+        // Assert
+        assertEquals(2, result.size(), "Should return 2 child tasks");
+        result.forEach(task -> assertEquals(savedParentTask.getId(), task.getParentTask().getId(), "Task should belong to parent"));
+        assertTaskTitlesContain(result, List.of("Child Task One", "Child Task Two"));
     }
 
     @Test
-    @DisplayName("Find by Parent Task ID but there are no Child Task(s) associated with the provided Parent Task ID returns empty List")
+    @DisplayName("Find Subtasks by Parent Task ID with no child tasks returns empty List")
     void findByParentTaskId_noChildTasks_returnsEmptyList() {
-        User user = this.setupUser(this.username);
+        // Arrange
+        User user = setupUser(USERNAME_1);
         User savedUser = userRepository.save(user);
-
-        Task parentTask1 = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser, Status.TODO);
+        Task parentTask1 = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser, Status.TODO);
         Task savedParentTask1 = taskRepository.save(parentTask1);
-
-        Task parentTask2 = this.setupTask(this.taskTitleTwo, new HashSet<>(), savedUser, Status.IN_PROGRESS);
+        Task parentTask2 = setupTask(TASK_TITLE_TWO, new HashSet<>(), savedUser, Status.IN_PROGRESS);
         Task savedParentTask2 = taskRepository.save(parentTask2);
-        Task childTask = this.setupTask("Child Task", new HashSet<>(), savedUser, Status.DONE);
+        Task childTask = setupTask(CHILD_TASK_TITLE, new HashSet<>(), savedUser, Status.DONE);
         childTask.setParentTask(savedParentTask2);
         taskRepository.save(childTask);
 
+        // Act
         List<Task> result = taskRepository.findByParentTaskId(savedParentTask1.getId());
+
+        // Assert
         assertTrue(result.isEmpty(), "Should return no child tasks for parent task 'Task One'");
     }
 
     @Test
-    @DisplayName("Find Subtasks by Non-Existent Parent Task ID Returns Empty List")
+    @DisplayName("Find Subtasks by non-existent Parent Task ID returns empty List")
     void findByParentTaskId_nonExistentParentTaskId_returnsEmptyList() {
+        // Act & Assert
         List<Task> result = taskRepository.findByParentTaskId(Long.MAX_VALUE);
         assertTrue(result.isEmpty(), "Should return no child tasks for non-existent parent task ID");
     }
 
     @Test
-    @DisplayName("Check if Task Title is Unique returns TRUE for Unique Title")
+    @DisplayName("Check if Task Title is unique returns true for unique title")
     void isTitleUnique_uniqueTitle_returnsTrue() {
-        User user = this.setupUser(this.username);
+        // Arrange
+        User user = setupUser(USERNAME_1);
         User savedUser = userRepository.save(user);
-
-        Task task = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser, Status.TODO);
+        Task task = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser, Status.TODO);
         taskRepository.save(task);
 
-        boolean result = taskRepository.isTitleUnique(this.taskTitleTwo, savedUser.getId(), null);
+        // Act
+        boolean result = taskRepository.isTitleUnique(TASK_TITLE_TWO, savedUser.getId(), null);
+
+        // Assert
         assertTrue(result, "Should return true for unique title");
     }
 
     @Test
-    @DisplayName("Check if Task Title is Unique returns FALSE for NOT Unique Title")
-    void isTitleUnique_notUniqueTitle_returnsFalse() {
-        User user = this.setupUser(this.username);
+    @DisplayName("Check if Task Title is unique returns false for non-unique title")
+    void isTitleUnique_nonUniqueTitle_returnsFalse() {
+        // Arrange
+        User user = setupUser(USERNAME_1);
         User savedUser = userRepository.save(user);
-
-        Task task = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser, Status.TODO);
+        Task task = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser, Status.TODO);
         taskRepository.save(task);
 
-        boolean result = taskRepository.isTitleUnique(this.taskTitleOne, savedUser.getId(), null);
+        // Act
+        boolean result = taskRepository.isTitleUnique(TASK_TITLE_ONE, savedUser.getId(), null);
+
+        // Assert
         assertFalse(result, "Should return false for non-unique title");
     }
 
     @Test
-    @DisplayName("Check if Task Title is Unique returns TRUE excluding Self")
+    @DisplayName("Check if Task Title is unique returns true when excluding self")
     void isTitleUnique_excludingSelf_returnsTrue() {
-        User user = this.setupUser(this.username);
+        // Arrange
+        User user = setupUser(USERNAME_1);
         User savedUser = userRepository.save(user);
-
-        Task task = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser, Status.IN_PROGRESS);
+        Task task = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser, Status.IN_PROGRESS);
         Task savedTask = taskRepository.save(task);
 
-        boolean result = taskRepository.isTitleUnique(this.taskTitleOne, savedUser.getId(), savedTask.getId());
+        // Act
+        boolean result = taskRepository.isTitleUnique(TASK_TITLE_ONE, savedUser.getId(), savedTask.getId());
+
+        // Assert
         assertTrue(result, "Should return true when excluding task's own ID");
     }
 
     @Test
-    @DisplayName("Check if Task Title for Same Title with Different User returns TRUE")
-    void isTitleUnique_differentTitle_returnsTrue() {
-        User user1 = this.setupUser("testuser1");
+    @DisplayName("Check if Task Title is unique returns true for same title with different user")
+    void isTitleUnique_differentUser_returnsTrue() {
+        // Arrange
+        User user1 = setupUser(USERNAME_1);
         User savedUser1 = userRepository.save(user1);
-        User user2 = this.setupUser(this.username2);
+        User user2 = setupUser(USERNAME_2);
         User savedUser2 = userRepository.save(user2);
-
-        Task task = this.setupTask(this.taskTitleOne, new HashSet<>(), savedUser1, Status.TODO);
+        Task task = setupTask(TASK_TITLE_ONE, new HashSet<>(), savedUser1, Status.TODO);
         taskRepository.save(task);
 
-        boolean result = taskRepository.isTitleUnique(this.taskTitleOne, savedUser2.getId(), null);
+        // Act
+        boolean result = taskRepository.isTitleUnique(TASK_TITLE_ONE, savedUser2.getId(), null);
+
+        // Assert
         assertTrue(result, "Should return true for same title with different user");
     }
 }
