@@ -1,11 +1,14 @@
-package todo.list.todo_list.dto.Registration;
+package todo.list.todo_list.dto.Admin;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import todo.list.todo_list.model.Role;
+import todo.list.todo_list.validation.EnumValidator;
 
-public class RegistrationRequest {
+public class AdminUserCreationRequest {
 
     @NotEmpty(message = "Username cannot be empty")
     @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
@@ -31,12 +34,12 @@ public class RegistrationRequest {
             message = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character")
     private String password;
 
-    // @NotNull(message = "Role cannot be null. Allowed roles: USER, MODERATOR")
-    // @EnumValidator(enumClass = Role.class, message = "Invalid role. Allowed roles: USER, MODERATOR")
-    // private Role role;
+    @NotNull(message = "Role cannot be null")
+    @EnumValidator(enumClass = Role.class, message = "Invalid role. Allowed roles: USER, MODERATOR, ADMIN")
+    private Role role;
 
     public String getUsername() {
-        return this.username;
+        return username;
     }
 
     public void setUsername(String username) {
@@ -44,7 +47,7 @@ public class RegistrationRequest {
     }
 
     public String getFirstName() {
-        return this.firstName;
+        return firstName;
     }
 
     public void setFirstName(String firstName) {
@@ -52,7 +55,7 @@ public class RegistrationRequest {
     }
 
     public String getLastName() {
-        return this.lastName;
+        return lastName;
     }
 
     public void setLastName(String lastName) {
@@ -60,7 +63,7 @@ public class RegistrationRequest {
     }
 
     public String getEmail() {
-        return this.email;
+        return email;
     }
 
     public void setEmail(String email) {
@@ -68,10 +71,18 @@ public class RegistrationRequest {
     }
 
     public String getPassword() {
-        return this.password;
+        return password;
     }
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
     }
 }

@@ -6,6 +6,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
+import todo.list.todo_list.dto.Admin.AdminUserCreationRequest;
 import todo.list.todo_list.dto.Registration.RegistrationRequest;
 import todo.list.todo_list.dto.User.UpdateRequest;
 import todo.list.todo_list.dto.User.UserDTO;
@@ -19,7 +20,16 @@ public interface UserMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "tasks", ignore = true)
     @Mapping(target = "authorities", ignore = true)
+    @Mapping(target = "role", ignore = true)
     User fromRegistrationRequest(RegistrationRequest request);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "password", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "tasks", ignore = true)
+    @Mapping(target = "authorities", ignore = true)
+    User fromAdminUserCreationRequest(AdminUserCreationRequest request);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)

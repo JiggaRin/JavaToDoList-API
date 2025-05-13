@@ -1,6 +1,7 @@
 package todo.list.todo_list.service.impl;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import todo.list.todo_list.dto.Admin.AdminUserCreationRequest;
+import todo.list.todo_list.dto.Admin.AdminUserCreationResponse;
 import todo.list.todo_list.dto.Registration.RegistrationRequest;
 import todo.list.todo_list.dto.Registration.RegistrationResponse;
 import todo.list.todo_list.dto.User.ChangePasswordRequest;
@@ -23,6 +26,7 @@ import todo.list.todo_list.exception.CannotProceedException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.exception.UserAlreadyExistsException;
 import todo.list.todo_list.mapper.UserMapper;
+import todo.list.todo_list.model.Role;
 import todo.list.todo_list.repository.RefreshTokenRepository;
 import todo.list.todo_list.repository.UserRepository;
 import todo.list.todo_list.service.UserService;
@@ -72,6 +76,7 @@ public class UserServiceImpl implements UserService {
 
         User user = userMapper.fromRegistrationRequest(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole(Role.USER);
         User savedUser = userRepository.save(user);
 
         log.info("Successfully registered user and assigned userID: {}", savedUser.getId());
@@ -146,7 +151,45 @@ public class UserServiceImpl implements UserService {
         return user;
     }
 
+    @Override
+    public AdminUserCreationResponse createUserWithAdminOrModeratorRole(@Valid AdminUserCreationRequest request) {
+        log.debug("Received Admin User Creation request");
+        validateCreationRequest(request);
+
+        String username = request.getUsername();
+        String email = request.getEmail();
+
+        if (username.length() < MIN_USERNAME_LENGTH) {
+            log.warn("Short username detected: {}", username);
+        }
+        if (email.length() > MAX_EMAIL_LENGTH) {
+            log.warn("Long email detected: {}", email);
+        }
+
+        if (userRepository.existsByUsername(username, null)) {
+            throw new UserAlreadyExistsException("Username is already taken!");
+        }
+        if (userRepository.existsByEmail(email, null)) {
+            throw new UserAlreadyExistsException("Email is already in use!");
+        }
+
+        User user = userMapper.fromAdminUserCreationRequest(request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        User savedUser = userRepository.save(user);
+
+        log.info("Successfully created user: {} with role: {}", savedUser.getUsername(), savedUser.getRole());
+        return new AdminUserCreationResponse("User created successfully", savedUser.getUsername(), savedUser.getEmail(), savedUser.getRole());
+    }
+
     private void validateRegistrationRequest(RegistrationRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Registration request cannot be null");
+        }
+    }
+
+    private void validateCreationRequest(AdminUserCreationRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("Registration request cannot be null");
         }

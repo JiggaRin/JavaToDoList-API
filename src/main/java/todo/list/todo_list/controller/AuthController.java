@@ -4,12 +4,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import todo.list.todo_list.dto.Admin.AdminUserCreationRequest;
+import todo.list.todo_list.dto.Admin.AdminUserCreationResponse;
 import todo.list.todo_list.dto.Auth.AuthRequest;
 import todo.list.todo_list.dto.Auth.AuthResponse;
 import todo.list.todo_list.dto.Auth.RefreshTokenRequest;
@@ -69,5 +72,14 @@ public class AuthController {
         log.info("User logged out successfully");
 
         return ResponseEntity.ok("Logged out successfully");
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/admin/register")
+    public ResponseEntity<AdminUserCreationResponse> createUserWithAdminOrModeratorRole(@Valid @RequestBody AdminUserCreationRequest request) {
+        log.debug("Received admin user creation request for username: {}", request.getUsername());
+        AdminUserCreationResponse response = userService.createUserWithAdminOrModeratorRole(request);
+        log.info("Successfully created user: {} with role: {}", request.getUsername(), request.getRole());
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 }
