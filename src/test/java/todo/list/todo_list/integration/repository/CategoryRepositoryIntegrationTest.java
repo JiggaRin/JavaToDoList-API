@@ -217,7 +217,7 @@ class CategoryRepositoryIntegrationTest {
         categories.add(savedCategory);
         Task task1 = setupTask(TASK_TITLE + " 1", categories, defaultUser, null);
         Task task2 = setupTask(TASK_TITLE + " 2", categories, defaultUser, null);
-        
+
         // Act
         taskRepository.save(task1);
         taskRepository.save(task2);

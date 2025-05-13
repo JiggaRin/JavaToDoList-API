@@ -3,6 +3,7 @@ package todo.list.todo_list.exception;
 import java.time.LocalDateTime;
 
 public class ErrorResponse {
+
     private final LocalDateTime timestamp;
     private final int status;
     private final String error;

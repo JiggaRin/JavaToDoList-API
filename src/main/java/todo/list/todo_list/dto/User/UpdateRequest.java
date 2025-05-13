@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class UpdateRequest {
+
     @Size(min = 1, max = 50, message = "First name must be between 1 and 50 characters")
     @Pattern(regexp = "^[A-Za-zà-ÿÀ-ß'\\- ]+$", message = "Invalid characters in first name")
     private String firstName;
@@ -28,13 +29,15 @@ public class UpdateRequest {
     public String getEmail() {
         return this.email;
     }
-    
+
     public void setFirstName(String firstName) {
         this.firstName = firstName;
     }
+
     public void setLastName(String lastName) {
         this.lastName = lastName;
     }
+
     public void setEmail(String email) {
         this.email = email;
     }

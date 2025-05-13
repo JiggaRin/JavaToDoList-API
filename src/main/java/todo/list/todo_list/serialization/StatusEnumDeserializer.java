@@ -17,7 +17,8 @@ public class StatusEnumDeserializer extends JsonDeserializer<Status> {
         try {
             return Status.valueOf(value);
         } catch (IllegalArgumentException e) {
-            throw new JsonProcessingException("Invalid value for enum Status: " + value + ". Allowed values: TODO, IN_PROGRESS, DONE.") {};
+            throw new JsonProcessingException("Invalid value for enum Status: " + value + ". Allowed values: TODO, IN_PROGRESS, DONE.") {
+            };
         }
     }
 }

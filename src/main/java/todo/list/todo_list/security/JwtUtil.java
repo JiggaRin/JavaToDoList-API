@@ -42,7 +42,6 @@ public class JwtUtil {
         log.info("Successfully generated Access Token for username: {}", username);
         return token;
     }
-    
 
     public String generateRefreshToken(String username) {
         log.debug("Received Generate Refresh Token request for username: {}", username);

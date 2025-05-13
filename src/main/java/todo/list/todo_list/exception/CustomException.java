@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus
 public class CustomException extends RuntimeException {
+
     private final HttpStatus status;
 
     public CustomException(String message, HttpStatus status) {

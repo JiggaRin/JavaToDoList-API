@@ -127,8 +127,6 @@ class TaskRepositoryIntegrationTest {
         assertNotNull(savedTask.getUpdatedAt(), "Updated timestamp should be set");
     }
 
-    
-
     @Test
     @DisplayName("Save Task with null title throws DataIntegrityViolationException")
     void saveTask_nullTitle_throwsException() {

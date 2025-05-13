@@ -24,7 +24,6 @@ public class RefreshToken {
     @Column(nullable = false)
     private Instant expiration;
 
-
     public Long getId() {
         return this.id;
     }
@@ -56,5 +55,5 @@ public class RefreshToken {
     public void setExpiration(Instant expiration) {
         this.expiration = expiration;
     }
-   
+
 }

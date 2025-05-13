@@ -1,8 +1,9 @@
 package todo.list.todo_list.dto.Auth;
 
 public class AuthResponse {
+
     private String accessToken;
-    
+
     private String refreshToken;
 
     public AuthResponse(String accessToken, String refreshToken) {

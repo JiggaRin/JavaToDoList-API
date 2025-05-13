@@ -24,8 +24,9 @@ import jakarta.persistence.Table;
 import todo.list.todo_list.model.Status;
 
 @Entity
-@Table(name="tasks")
+@Table(name = "tasks")
 public class Task {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -35,7 +36,7 @@ public class Task {
     private Task parentTask;
 
     @ManyToOne
-    @JoinColumn(name="user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User owner;
 
     @Column(name = "title", nullable = false)
@@ -56,16 +57,17 @@ public class Task {
 
     @ManyToMany
     @JoinTable(
-        name = "task_categories",
-        joinColumns = @JoinColumn(name = "task_id"),
-        inverseJoinColumns = @JoinColumn(name = "category_id")
+            name = "task_categories",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     private Set<Category> categories = new HashSet<>();
 
     @OneToMany(mappedBy = "parentTask", fetch = FetchType.LAZY)
     private List<Task> subTasks;
 
-    public Task() {}
+    public Task() {
+    }
 
     public Task(Long taskId, User owner, Status status) {
         this.id = taskId;

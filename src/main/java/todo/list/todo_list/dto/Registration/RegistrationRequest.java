@@ -34,7 +34,6 @@ public class RegistrationRequest {
     // @NotNull(message = "Role cannot be null. Allowed roles: USER, MODERATOR")
     // @EnumValidator(enumClass = Role.class, message = "Invalid role. Allowed roles: USER, MODERATOR")
     // private Role role;
-
     public String getUsername() {
         return this.username;
     }

@@ -95,13 +95,13 @@ public class CategoryServiceImpl implements CategoryService {
 
         Category existedCategory = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
-                String categoryName = request.getName();
-                if (categoryName.length() < MIN_CATEGORY_NAME_LENGTH) {
-                    log.warn("Short category name detected: {}", categoryName);
-                }
-                if (categoryName.length() > MAX_CATEGORY_NAME_LENGTH) {
-                    log.warn("Long category name detected: {}", categoryName);
-                }
+        String categoryName = request.getName();
+        if (categoryName.length() < MIN_CATEGORY_NAME_LENGTH) {
+            log.warn("Short category name detected: {}", categoryName);
+        }
+        if (categoryName.length() > MAX_CATEGORY_NAME_LENGTH) {
+            log.warn("Long category name detected: {}", categoryName);
+        }
         validateCategoryNameUniqueness(categoryName, existedCategory.getId());
 
         trackUpdateAttempt(categoryId);
@@ -156,9 +156,9 @@ public class CategoryServiceImpl implements CategoryService {
         List<Long> attempts = UPDATE_ATTEMPTS.computeIfAbsent(categoryId, k -> new ArrayList<>());
 
         attempts.removeIf(timestamp -> currentTime - timestamp > UPDATE_ATTEMPT_WINDOW_SECONDS);
-        
+
         attempts.add(currentTime);
-        
+
         if (attempts.size() > MAX_UPDATE_ATTEMPTS) {
             log.warn("Frequent update attempts detected for category ID: {}, attempts: {}", categoryId, attempts.size());
         }

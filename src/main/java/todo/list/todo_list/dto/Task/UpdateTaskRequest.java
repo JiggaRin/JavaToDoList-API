@@ -8,6 +8,7 @@ import todo.list.todo_list.model.Status;
 import todo.list.todo_list.validation.EnumValidator;
 
 public class UpdateTaskRequest {
+
     private Long parentId;
 
     @Size(max = 255, message = "Title must be between 1 and 255 characters")

@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import todo.list.todo_list.model.Status;
 
 public class TaskDTO {
+
     private Long id;
     private Long userId;
     private Long parentId;

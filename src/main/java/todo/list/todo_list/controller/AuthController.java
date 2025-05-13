@@ -41,7 +41,7 @@ public class AuthController {
         log.debug("Received registration request for username: {}", request.getUsername());
         RegistrationResponse response = userService.registerUser(request);
         log.info("Successfully registered user: {}", request.getUsername());
-        
+
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
@@ -56,9 +56,9 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
-        log.debug("Received token refresh request for token: {}", 
-            refreshTokenRequest.getRefreshToken() != null ? 
-            refreshTokenRequest.getRefreshToken().substring(0, Math.min(10, refreshTokenRequest.getRefreshToken().length())) + "..." : null);
+        log.debug("Received token refresh request for token: {}",
+                refreshTokenRequest.getRefreshToken() != null
+                ? refreshTokenRequest.getRefreshToken().substring(0, Math.min(10, refreshTokenRequest.getRefreshToken().length())) + "..." : null);
         AuthResponse response = authService.refreshToken(refreshTokenRequest.getRefreshToken());
         log.info("Token refreshed successfully");
 
@@ -67,9 +67,9 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
-        log.debug("Received logout request for token: {}", 
-            refreshTokenRequest.getRefreshToken() != null ? 
-            refreshTokenRequest.getRefreshToken().substring(0, Math.min(10, refreshTokenRequest.getRefreshToken().length())) + "..." : null);
+        log.debug("Received logout request for token: {}",
+                refreshTokenRequest.getRefreshToken() != null
+                ? refreshTokenRequest.getRefreshToken().substring(0, Math.min(10, refreshTokenRequest.getRefreshToken().length())) + "..." : null);
         authService.logout(refreshTokenRequest.getRefreshToken());
         log.info("User logged out successfully");
 

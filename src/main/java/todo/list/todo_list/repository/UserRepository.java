@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import todo.list.todo_list.entity.User;
 
 public interface UserRepository extends JpaRepository<User, Long> {
-    
+
     @Query("SELECT COUNT(u) > 0 FROM User u WHERE (u.username = :username) AND (:userId IS NULL OR u.id <> :userId)")
     boolean existsByUsername(@Param("username") String username, @Param("userId") Long userId);
 

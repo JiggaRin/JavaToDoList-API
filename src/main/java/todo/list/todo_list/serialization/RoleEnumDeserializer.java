@@ -17,7 +17,8 @@ public class RoleEnumDeserializer extends JsonDeserializer<Role> {
         try {
             return Role.valueOf(value);
         } catch (IllegalArgumentException e) {
-            throw new JsonProcessingException("Invalid value for Role: '" + value + "'. Allowed values: USER, MODERATOR") {};
+            throw new JsonProcessingException("Invalid value for Role: '" + value + "'. Allowed values: USER, MODERATOR") {
+            };
         }
     }
 }

@@ -1,10 +1,12 @@
 package todo.list.todo_list.dto.Category;
 
 public class CategoryDTO {
+
     private Long id;
     private String name;
 
-    public CategoryDTO() {}
+    public CategoryDTO() {
+    }
 
     public Long getId() {
         return this.id;

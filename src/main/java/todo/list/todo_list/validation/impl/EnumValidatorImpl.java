@@ -9,6 +9,7 @@ import jakarta.validation.ConstraintValidatorContext;
 import todo.list.todo_list.validation.EnumValidator;
 
 public class EnumValidatorImpl implements ConstraintValidator<EnumValidator, Enum<?>> {
+
     private Set<String> acceptedValues;
 
     @Override

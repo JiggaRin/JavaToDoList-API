@@ -96,7 +96,7 @@ public class AuthServiceImpl implements AuthService {
     public void logout(String refreshToken) {
         log.debug("Logging out with token: {}", refreshToken != null ? refreshToken.substring(0, Math.min(10, refreshToken.length())) + "..." : null);
         validateRefreshToken(refreshToken);
-        
+
         String username = jwtUtil.extractUsername(refreshToken);
         refreshTokenService.deleteByUsername(username);
         log.info("Successfully logged out user: {}", username);
@@ -140,9 +140,9 @@ public class AuthServiceImpl implements AuthService {
         List<Long> attempts = LOGIN_ATTEMPTS.computeIfAbsent(username, k -> new ArrayList<>());
 
         attempts.removeIf(timestamp -> currentTime - timestamp > LOGIN_ATTEMPT_WINDOW_SECONDS);
-        
+
         attempts.add(currentTime);
-        
+
         if (attempts.size() > MAX_LOGIN_ATTEMPTS) {
             log.warn("Frequent login attempts detected for user: {}, attempts: {}", username, attempts.size());
         }

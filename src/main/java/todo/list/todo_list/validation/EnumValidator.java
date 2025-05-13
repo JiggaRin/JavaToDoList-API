@@ -15,8 +15,12 @@ import todo.list.todo_list.validation.impl.EnumValidatorImpl;
 @Constraint(validatedBy = EnumValidatorImpl.class)
 @Documented
 public @interface EnumValidator {
+
     Class<? extends Enum<?>> enumClass();
+
     String message() default "Invalid value. Allowed values: {enumValues}";
+
     Class<?>[] groups() default {};
+
     Class<? extends Payload>[] payload() default {};
 }

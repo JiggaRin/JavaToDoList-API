@@ -13,9 +13,9 @@ import todo.list.todo_list.entity.User;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
-    @Query("SELECT t FROM Task t WHERE (:userId IS NULL OR t.owner.id = :userId) " +
-            "AND t.parentTask IS NULL " +
-            "AND (:search IS NULL OR LOWER(t.title) LIKE LOWER(CONCAT('%', :search, '%'))) ")
+    @Query("SELECT t FROM Task t WHERE (:userId IS NULL OR t.owner.id = :userId) "
+            + "AND t.parentTask IS NULL "
+            + "AND (:search IS NULL OR LOWER(t.title) LIKE LOWER(CONCAT('%', :search, '%'))) ")
     Page<Task> findParentTasks(@Param("userId") Long userId, @Param("search") String search, Pageable pageable);
 
     List<Task> findByOwner(User owner);

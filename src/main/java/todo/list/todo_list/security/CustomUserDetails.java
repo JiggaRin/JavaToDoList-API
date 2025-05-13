@@ -30,7 +30,7 @@ public class CustomUserDetails implements UserDetails {
 
     public Long getId() {
         return id;
-    } 
+    }
 
     @Override
     public String getPassword() {

@@ -1,6 +1,7 @@
 package todo.list.todo_list.dto.Registration;
 
 public class RegistrationResponse {
+
     private String message;
     private String username;
     private String email;
