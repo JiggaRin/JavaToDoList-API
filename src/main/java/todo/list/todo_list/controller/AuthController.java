@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -81,5 +83,16 @@ public class AuthController {
         AdminUserCreationResponse response = userService.createUserWithAdminOrModeratorRole(request);
         log.info("Successfully created user: {} with role: {}", request.getUsername(), request.getRole());
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/admin/users/{userId}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
+        log.debug("Received DELETE User request by userID: {}", userId);
+
+        userService.deleteUser(userId);
+        log.info("Successfully deleted User by userID: {}", userId);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

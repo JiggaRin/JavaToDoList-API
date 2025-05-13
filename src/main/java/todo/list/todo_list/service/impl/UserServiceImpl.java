@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,7 @@ import todo.list.todo_list.dto.User.ChangePasswordRequest;
 import todo.list.todo_list.dto.User.UpdateRequest;
 import todo.list.todo_list.dto.User.UserDTO;
 import todo.list.todo_list.entity.User;
+import todo.list.todo_list.exception.AccessDeniedException;
 import todo.list.todo_list.exception.CannotProceedException;
 import todo.list.todo_list.exception.ResourceNotFoundException;
 import todo.list.todo_list.exception.UserAlreadyExistsException;
@@ -181,6 +183,25 @@ public class UserServiceImpl implements UserService {
 
         log.info("Successfully created user: {} with role: {}", savedUser.getUsername(), savedUser.getRole());
         return new AdminUserCreationResponse("User created successfully", savedUser.getUsername(), savedUser.getEmail(), savedUser.getRole());
+    }
+
+    @Override
+    public void deleteUser(Long userId) {
+        log.debug("Processing deletion request for user ID: {}", userId);
+
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with ID " + userId + " not found"));
+
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("Current user not found"));
+
+        if (currentUser.getId().equals(userId)) {
+            throw new AccessDeniedException("Admins cannot delete their own account");
+        }
+        userRepository.deleteById(userId);
+
+        log.info("Successfully deleted user with ID: {}", userId);
     }
 
     private void validateRegistrationRequest(RegistrationRequest request) {

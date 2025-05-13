@@ -15,7 +15,9 @@ public interface UserService {
 
     AdminUserCreationResponse createUserWithAdminOrModeratorRole(AdminUserCreationRequest request);
 
-    User getUserById(Long id);
+    void deleteUser(Long userId);
+
+    User getUserById(Long userId);
 
     User getUserByUsername(String username);
 

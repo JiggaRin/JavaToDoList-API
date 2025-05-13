@@ -87,7 +87,6 @@ class UserServiceImplTest {
         request.setPassword(password);
         request.setFirstName(FIRST_NAME);
         request.setLastName(LAST_NAME);
-        request.setRole(Role.USER);
         return request;
     }
 
