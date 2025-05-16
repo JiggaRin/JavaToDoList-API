@@ -1,7 +1,7 @@
 # Java ToDo List API
 
-[![Java](https://img.shields.io/badge/Java-21-blue)](https://jdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3.4-brightgreen)](https://spring.io/projects/spring-boot)
+[![Java](https://img.shields.io/badge/Java-17-blue)](https://jdk.java.net/)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4.5-brightgreen)](https://spring.io/projects/spring-boot)
 [![Docker](https://img.shields.io/badge/Docker-Compose-blue)](https://www.docker.com/)
 
 The **Java ToDo List API** is a robust *backend RESTful API* for managing users, tasks, and task categories in a to-do list application. Built with **Spring Boot**, it features secure **JWT-based authentication**, a **MySQL** database with **Flyway** migrations, and comprehensive unit and integration tests. This project showcases expertise in designing *scalable REST APIs*, implementing advanced security with role-based and permission-based access, managing relational databases, and containerizing applications with **Docker**.
