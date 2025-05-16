@@ -151,34 +151,57 @@ This will:
 
 ## API Endpoints
 
-| Method | Endpoint                           | Description                  | Access                          |
-|--------|------------------------------------|------------------------------|---------------------------------|
-                                          -- PUBLIC --
-| POST   | `/api/register`                    | Register a new user          | Public                          |
-| POST   | `/api/login`                       | Authenticate a user          | Public                          |
-| POST   | `/api/refresh`                     | Refresh JWT token            | Public                          |
-| POST   | `/api/logout`                      | Log out a user               | Public                          |
-                                          -- ADMIN --
-| POST   | `/api/admin/register`              | Register user with role      | Admin only                      |
-| DELETE | `/api/admin/users/{userId}`        | Delete a user by ID          | Admin only                      |
-                                          -- USER -- 
-| PUT    | `/api/users`                       | Update user profile          | Authenticated                   |
-| PUT    | `/api/users/change-password`       | Update user password         | Authenticated                   |
-                                          -- TASK --
-| POST   | `/api/tasks`                       | Create a new task            | Authenticated                   |
-| GET    | `/api/tasks`                       | List of tasks                | Admin or Moder                  |
-| GET    | `/api/tasks/{taskId}`              | Get a task by ID             | Admin or Moder                  |
-| PUT    | `/api/tasks/{taskId}`              | Update a task                | Task owner or Admin or Moderator|
-| DELETE | `/api/tasks/{taskId}`              | Delete a task                | Task owner or Admin or Moderator|
-| GET    | `/api/tasks/user/{userId}`         | Get task by User ID          | Admin or Moder                  |
-| GET    | `/api/tasks/my-tasks`              | Get Users Tasks              | Task's owner                    |
-| PUT    | `/api/tasks/update-status/{taskId}`| Update Task Status           | Task owner or Admin or Moderator|
-                                       -- TASK CATEGORY --
-| POST   | `/api/categories`                  | Create a task category       | Authenticated                   |
-| GET    | `/api/categories`                  | List of all categories       | Admin or Moderator              |
-| GET    | `/api/categories/{categoryId}`     | Get a category by ID         | Admin or Moderator              |
-| PUT    | `/api/categories/{categoryId}`     | Update a category            | Admin or Moderator              |
-| DELETE | `/api/categories/{categoryId}`     | Delete a category            | Admin or Moderator              |
+<!-- Authentication -->
+**Authentication**
+
+| Method | Endpoint               | Description              | Access  |
+|--------|------------------------|--------------------------|---------|
+| POST   | `/api/register`        | Register user            | Public  |
+| POST   | `/api/login`           | Authenticate user        | Public  |
+| POST   | `/api/refresh`         | Refresh JWT token        | Public  |
+| POST   | `/api/logout`          | Log out user             | Public  |
+
+<!-- Admin -->
+**Admin**
+
+| Method | Endpoint                        | Description              | Access      |
+|--------|---------------------------------|--------------------------|-------------|
+| POST   | `/api/admin/register`           | Register user with role  | Admin only  |
+| DELETE | `/api/admin/users/{userId}`     | Delete user by ID        | Admin only  |
+
+<!-- User -->
+**User**
+
+| Method | Endpoint                        | Description              | Access        |
+|--------|---------------------------------|--------------------------|---------------|
+| GET    | `/api/users/current`            | Get user profile         | Authenticated |
+| PUT    | `/api/users/current`            | Update user profile      | Authenticated |
+| PUT    | `/api/users/current/password`   | Update user password     | Authenticated |
+
+<!-- Task -->
+**Task**
+
+| Method | Endpoint                              | Description                  | Access                        |
+|--------|---------------------------------------|------------------------------|-------------------------------|
+| POST   | `/api/tasks`                          | Create task                  | Authenticated                 |
+| GET    | `/api/tasks`                          | List all tasks               | Admin/Moderator               |
+| GET    | `/api/tasks/{taskId}`                 | Get task by ID               | Admin/Moderator               |
+| PUT    | `/api/tasks/{taskId}`                 | Update task                  | Task Owner/Admin/Moderator    |
+| DELETE | `/api/tasks/{taskId}`                 | Delete task                  | Task Owner/Admin/Moderator    |
+| GET    | `/api/tasks/user/{userId}`            | Get tasks by user ID         | Admin/Moderator               |
+| GET    | `/api/tasks/my-tasks`                 | Get user’s tasks             | Task Owner                    |
+| PUT    | `/api/tasks/update-status/{taskId}`   | Update task status           | Task Owner/Admin/Moderator    |
+
+<!-- Task Category -->
+**Task Category**
+
+| Method | Endpoint                        | Description                  | Access            |
+|--------|---------------------------------|------------------------------|-------------------|
+| POST   | `/api/categories`               | Create category              | Authenticated     |
+| GET    | `/api/categories`               | List all categories          | Admin/Moderator   |
+| GET    | `/api/categories/{categoryId}`  | Get category by ID           | Category Owner    |
+| PUT    | `/api/categories/{categoryId}`  | Update category              | Category Owner    |
+| DELETE | `/api/categories/{categoryId}`  | Delete category              | Category Owner    |
 
 ---
 
