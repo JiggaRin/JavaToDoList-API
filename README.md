@@ -197,11 +197,11 @@ This will:
 
 | Method | Endpoint                        | Description                  | Access            |
 |--------|---------------------------------|------------------------------|-------------------|
-| POST   | `/api/categories`               | Create category              | Authenticated     |
+| POST   | `/api/categories`               | Create category              | Admin/Moderator   |
 | GET    | `/api/categories`               | List all categories          | Admin/Moderator   |
-| GET    | `/api/categories/{categoryId}`  | Get category by ID           | Category Owner    |
-| PUT    | `/api/categories/{categoryId}`  | Update category              | Category Owner    |
-| DELETE | `/api/categories/{categoryId}`  | Delete category              | Category Owner    |
+| GET    | `/api/categories/{categoryId}`  | Get category by ID           | Admin/Moderator   |
+| PUT    | `/api/categories/{categoryId}`  | Update category              | Admin/Moderator   |
+| DELETE | `/api/categories/{categoryId}`  | Delete category              | Admin/Moderator   |
 
 ---
 
