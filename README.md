@@ -99,25 +99,81 @@ mvn --version
 
 ---
 
+
+#### Section 4: Project Structure and Configuration
+```markdown
+## Project Structure
+
+- `src/` - Source code (controllers, services, repositories).
+- `Dockerfile` - Docker configuration.
+- `docker-compose.yaml` - Docker Compose setup.
+- `target/` - Compiled `.jar` file.
+- `src/test/` - Unit and integration tests.
+
+## Configuration
+
+The application uses **Spring Boot profiles** to manage configurations for different environments:
+- **`local`**: For local development, where the Spring Boot app runs manually (e.g., via `mvn spring-boot:run`) and connects to a Dockerized MySQL database on `localhost:3306`.
+- **`docker`**: For full Dockerized deployment, where both the app and MySQL run in Docker containers, connecting to MySQL on `mysql:3306` within the Docker network.
+
+This setup prevents issues like the `Communications link failure` error, which occurs when using a local database URL (`localhost:3306`) in a Dockerized environment. Profiles ensure the correct database URL is used for each setup.
+
+```
+
 ## Setup Instructions
 
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/JiggaRin/JavaToDoList-API.git
 cd JavaToDoList-API
+
 ```
 
 ### 2. Build the Application
 Compile the project and generate the `.jar` file:
 ```bash
-mvn clean install
+mvn clean package -DskipTests
 ```
+> [!IMPORTANT]
+> This flag skips unit and integration tests during the build process. It is recommended only for the initial setup to quickly verify that the project compiles and dependencies are correctly resolved.
+
+> [!IMPORTANT]
+> Running tests requires a properly configured database and environment, which may not yet be available during the first install. Skipping them avoids test failures related to missing or uninitialized infrastructure.
+
+> [!IMPORTANT]
+> After the initial setup and once the database is running (e.g., via Docker), you should remove the -DskipTests flag to ensure that all tests pass and the system behaves as expected.
 
 ### 3. Start the Application
-Launch the application and MySQL database using Docker Compose:
+## Option 1: Local Development (Recommended for Development)
+
+1. Run a Dockerized MySQL container and the app manually:
 ```bash
-docker-compose up -d
+docker-compose up -d mysql
 ```
+
+2. Run the Spring Boot app with the `local` profile:
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+3. Verify the MySQL container is running:
+```bash
+docker ps
+```
+
+## Option 2: Dockerized Deployment
+
+Run both the app and MySQL in Docker containers:
+1. Ensure the docker profile is set in docker-compose.yaml:
+```bash
+environment:
+  - SPRING_PROFILES_ACTIVE=docker
+```
+2. Start both services:
+```bash
+docker-compose up --build -d
+```
+
 This will:
 - Build the Docker image for the API.
 - Start the MySQL container.
@@ -128,31 +184,16 @@ This will:
   ```bash
   docker ps
   ```
-  Confirm `mysql-container` and `todo-app` are running.
-- Test an endpoint (e.g., register a user):
+  Confirm `mysql-container` (and `todo-app` for Dockerized setup) are running.
+- Check logs for errors:
   ```bash
-  curl -X POST http://localhost:8080/api/register \
-       -H "Content-Type: application/json" \
-       -d '{"username":"testuser","email":"test@example.com","password":"Password123!","firstName":"Test","lastName":"User"}'
-  ```
-- Test task creation (after login to get JWT):
-  ```bash
-  curl -X POST http://localhost:8080/api/tasks \
-       -H "Content-Type: application/json" \
-       -H "Authorization: Bearer <your-jwt-token>" \
-       -d '{"title":"Test Task","description":"Sample task","status":"TODO","priority":"MEDIUM","dueDate":"2025-12-31"}'
-  ```
-- API documentation (in progress):
-  ```
-  http://localhost:8080/swagger-ui.html
-  ```
-
----
+  docker logs mysql-container
+  docker logs todo-app  # If using Dockerized setup
+```
 
 ## API Endpoints
 
 <!-- Authentication -->
-**Authentication**
 
 | Method | Endpoint               | Description              | Access  |
 |--------|------------------------|--------------------------|---------|
@@ -162,7 +203,6 @@ This will:
 | POST   | `/api/logout`          | Log out user             | Public  |
 
 <!-- Admin -->
-**Admin**
 
 | Method | Endpoint                        | Description              | Access      |
 |--------|---------------------------------|--------------------------|-------------|
@@ -170,16 +210,13 @@ This will:
 | DELETE | `/api/admin/users/{userId}`     | Delete user by ID        | Admin only  |
 
 <!-- User -->
-**User**
 
 | Method | Endpoint                        | Description              | Access        |
 |--------|---------------------------------|--------------------------|---------------|
-| GET    | `/api/users/current`            | Get user profile         | Authenticated |
-| PUT    | `/api/users/current`            | Update user profile      | Authenticated |
-| PUT    | `/api/users/current/password`   | Update user password     | Authenticated |
+| PUT    | `/api/users/update`             | Update user profile      | Authenticated |
+| PUT    | `/api/users/change-password`    | Update user password     | Authenticated |
 
 <!-- Task -->
-**Task**
 
 | Method | Endpoint                              | Description                  | Access                        |
 |--------|---------------------------------------|------------------------------|-------------------------------|
@@ -193,7 +230,6 @@ This will:
 | PUT    | `/api/tasks/update-status/{taskId}`   | Update task status           | Task Owner/Admin/Moderator    |
 
 <!-- Task Category -->
-**Task Category**
 
 | Method | Endpoint                        | Description                  | Access            |
 |--------|---------------------------------|------------------------------|-------------------|
@@ -203,7 +239,7 @@ This will:
 | PUT    | `/api/categories/{categoryId}`  | Update category              | Admin/Moderator   |
 | DELETE | `/api/categories/{categoryId}`  | Delete category              | Admin/Moderator   |
 
----
+```
 
 ## Environment Variables
 

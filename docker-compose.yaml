@@ -1,3 +1,51 @@
+# services:
+#   mysql:
+#     image: mysql:8.1
+#     container_name: mysql-container
+#     environment:
+#       MYSQL_ROOT_PASSWORD: root
+#       MYSQL_DATABASE: todolist
+#       MYSQL_USER: todo_user
+#       MYSQL_PASSWORD: password
+#     ports:
+#       - "3306:3306"
+#     volumes:
+#       - mysql-data:/var/lib/mysql
+#     networks:
+#       - todo-network
+#     restart: always
+
+#   app:
+#     build: 
+#       context: .
+#       dockerfile: Dockerfile
+#     container_name: todo-app
+#     restart: always
+#     depends_on:
+#       - mysql
+#     ports:
+#       - "8080:8080"
+#     volumes:
+#       - ./src:/app/src
+#       - ./target:/app/target
+#     networks:
+#       - todo-network
+    # entrypoint: >
+    #   sh -c "
+    #   until timeout 1 bash -c 'cat < /dev/null > /dev/tcp/mysql/3306'; do
+    #     echo 'Waiting for MySQL...';
+    #     sleep 1;
+    #   done;
+    #   java -jar app.jar"
+    # command: mvn spring-boot:run
+
+# networks:
+#   todo-network:
+#     driver: bridge
+
+# volumes:
+#   mysql-data:
+#     driver: local
 services:
   mysql:
     image: mysql:8.1
@@ -25,8 +73,9 @@ services:
       - mysql
     ports:
       - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
     volumes:
-      - ./src:/app/src
       - ./target:/app/target
     networks:
       - todo-network
