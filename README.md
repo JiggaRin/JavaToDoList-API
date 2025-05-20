@@ -129,7 +129,7 @@ mvn clean package -DskipTests
 > [!IMPORTANT]
 > This flag skips unit and integration tests during the build process. It is recommended only for the initial setup to quickly verify that the project compiles and dependencies are correctly resolved.
 > Running tests requires a properly configured database and environment, which may not yet be available during the first install. Skipping them avoids test failures related to missing or uninitialized infrastructure.
-> After the initial setup and once the database is running (e.g., via Docker), you should remove the -DskipTests flag to ensure that all tests pass and the system behaves as expected.
+> After the initial setup and once the database is running (e.g., via Docker), you should remove the `-DskipTests` flag to ensure that all tests pass and the system behaves as expected.
 
 ### 3. Start the Application
 ## Option 1: Local Development (Recommended for Development)
@@ -279,10 +279,7 @@ docker-compose down -v
 
 ## Future Improvements
 - Complete **Swagger UI** integration for interactive API documentation.
-- Add task filtering and search (e.g., by status, priority, or due date).
 - Expand integration tests for controllers and services.
-- Implement a **CI/CD pipeline** for automated builds and deployments.
-
 ---
 
 ## License
