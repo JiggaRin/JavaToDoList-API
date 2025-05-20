@@ -100,16 +100,8 @@ mvn --version
 ---
 
 
-#### Section 4: Project Structure and Configuration
+#### Section 4: Configuration
 ```markdown
-## Project Structure
-
-- `src/` - Source code (controllers, services, repositories).
-- `Dockerfile` - Docker configuration.
-- `docker-compose.yaml` - Docker Compose setup.
-- `target/` - Compiled `.jar` file.
-- `src/test/` - Unit and integration tests.
-
 ## Configuration
 
 The application uses **Spring Boot profiles** to manage configurations for different environments:
