@@ -101,16 +101,13 @@ mvn --version
 
 
 #### Section 4: Configuration
-```markdown
 ## Configuration
 
-The application uses **Spring Boot profiles** to manage configurations for different environments:
+The application uses **`Spring Boot profiles`** to manage configurations for different environments:
 - **`local`**: For local development, where the Spring Boot app runs manually (e.g., via `mvn spring-boot:run`) and connects to a Dockerized MySQL database on `localhost:3306`.
 - **`docker`**: For full Dockerized deployment, where both the app and MySQL run in Docker containers, connecting to MySQL on `mysql:3306` within the Docker network.
 
-This setup prevents issues like the `Communications link failure` error, which occurs when using a local database URL (`localhost:3306`) in a Dockerized environment. Profiles ensure the correct database URL is used for each setup.
-
-```
+This setup prevents issues like the **`Communications link failure`** error, which occurs when using a local database URL (`localhost:3306`) in a Dockerized environment. Profiles ensure the correct database URL is used for each setup.
 
 ## Setup Instructions
 
