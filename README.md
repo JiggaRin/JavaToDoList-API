@@ -228,6 +228,18 @@ This will:
 | DELETE | `/api/categories/{categoryId}`  | Delete category              | Admin/Moderator   |
 
 ```
+## Postman Collection
+
+A Postman collection is available to test the API endpoints. It includes requests for all Authentication, Admin, User, Task, and Task Category endpoints, organized into folders for easy navigation.
+
+### Usage
+1. Install [Postman](https://www.postman.com/downloads/).
+2. Import the collection (`docs/JavaToDoList-API.postman_collection.json`).
+3. Set the `baseUrl` variable to `http://localhost:8080` (or your deployed URL).
+4. Run the `POST /api/login` request to obtain a JWT token.
+5. Test other endpoints using the stored token.
+
+The collection includes example requests.
 
 ## Environment Variables
 
