@@ -87,6 +87,10 @@ java --version
 mvn --version
 ```
 
+## Security
+- **JWT-Based Authentication**: Uses `JwtAuthenticationFilter` to validate tokens for protected endpoints. Public endpoints (`/api/login`, `/api/refresh`, `/api/register`, `/api/logout`) bypass authentication.
+- **Role-Based Access**: Supports `USER`, `ADMIN`, `MODERATOR` roles.
+- **Permission-Based Access**: Uses `PermissionEvaluator` for task ownership.
 ---
 
 ## Project Structure
